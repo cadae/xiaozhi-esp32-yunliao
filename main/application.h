@@ -69,6 +69,7 @@ public:
     void Reboot();
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
+    Ota& getOta() { return ota_; }
 
 private:
     Application();

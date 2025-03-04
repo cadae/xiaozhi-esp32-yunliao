@@ -3,6 +3,17 @@
         "type" :"zh-CN"
     },
     "strings": {
+        "LOGO":"小智云聊",
+        "HELP1_1":"长按按键开始对话",
+        "HELP1_2":"单击按键持续对话",
+        "HELP2":"双击按键进入帮助",
+        "HELP3":"扫码访问",
+        "HELP4":"管理后台",
+        "DISCONNECT":"网络已断开",
+        "SHUTTING_DOWN":"即将关机",
+        "SCAN_QR": "微信扫码配网，或",
+        "HINT_SHUTDOWN": "(长按关机)",
+        
         "WARNING":"警告",
         "INFO":"信息",
         "ERROR":"错误",
@@ -46,5 +57,6 @@
         "VOLUME":"音量 ",
         "MUTED":"已静音",
         "MAX_VOLUME":"最大音量"
+
     }
 }

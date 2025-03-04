@@ -3,6 +3,17 @@
         "type": "en-US"
     },
     "strings": {
+        "LOGO": "YunLiao",
+        "HELP1_1":"Long press to start the conversation",
+        "HELP1_2":"Click to enter ongoing conversation mode",
+        "HELP2":"Double click to enter the help",
+        "HELP3":"Scan QR code",
+        "HELP4":"to console",
+        "DISCONNECT": "Network disconnected",
+        "SHUTTING_DOWN": "Shutting down...",
+        "SCAN_QR": "WeChat scan QR, or ",
+        "HINT_SHUTDOWN": "(press 1 second to shutdown)",
+        
         "WARNING": "Warning",
         "INFO": "Information",
         "ERROR": "Error",
