@@ -92,6 +92,6 @@
 
 #define DISPLAY_OFFSET_X  0
 #define DISPLAY_OFFSET_Y  0
-
+#define KEY_EXPIRE_MS   800
 
 #endif // _BOARD_CONFIG_H_

@@ -3,12 +3,13 @@
         "type": "en-US"
     },
     "strings": {
+        "WAKE_WORD":"Hello",
         "LOGO": "YunLiao",
-        "HELP1_1":"Long press to start the conversation",
-        "HELP1_2":"Click to enter ongoing conversation mode",
+        "VERSION1":"Version 1",
+        "VERSION2":"Version 2",
+        "HELP1":"Click to enter ongoing conversation mode",
         "HELP2":"Double click to enter the help",
-        "HELP3":"Scan QR code",
-        "HELP4":"to console",
+        "HELP3":"Console",
         "DISCONNECT": "Network disconnected",
         "SHUTTING_DOWN": "Shutting down...",
         "SCAN_QR": "WeChat scan QR, or ",

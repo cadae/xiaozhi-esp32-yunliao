@@ -14,13 +14,15 @@
 #include <optional>
 #include <atomic>
 #include <string>
+#include <mutex>
+
+enum class PageIndex {
+    PAGE_CHAT = 0,
+    PAGE_CONFIG = 1
+};
 
 class XiaoziyunliaoDisplay : public SpiLcdDisplay {
 public:
-    enum class PageIndex {
-        PAGE_CHAT = 0,
-        PAGE_CONFIG = 1
-    };
 
     XiaoziyunliaoDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_handle_t panel,
                   gpio_num_t backlight_pin, bool backlight_output_invert,
@@ -43,19 +45,23 @@ public:
     void ShowChatPage();
     void HideChatPage();
     bool isActivationStatus() const;
-    std::string current_status_ = "";
+    const std::string& GetCurrentStatus() const { return current_status_; }
 
 protected:
     lv_obj_t *logo_label_ = nullptr;
     lv_obj_t* config_container_ = nullptr;
     lv_obj_t* config_text_panel_ = nullptr;
-    lv_obj_t* config_qrcode_panel_ = nullptr;
+    lv_obj_t* right_container = nullptr;
     lv_obj_t* qrcode_label_ = nullptr;
+    lv_obj_t* config_qrcode_panel_ = nullptr;
     lv_obj_t* smartconfig_qrcode_ = nullptr;
     lv_obj_t* qr_container = nullptr;
     lv_obj_t* console_qrcode_ = nullptr;
     PageIndex lv_page_index = PageIndex::PAGE_CHAT;
-   
+    std::mutex status_mutex_;
+    std::string current_status_ = "";
+
+    void Update() override;
 };
 
 #endif // XIAOZIYUNLIAO_DISPLAY_H 

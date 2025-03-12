@@ -10,25 +10,20 @@ namespace iot {
 
 class LCDScreen : public Thing {
 public:
-    LCDScreen() : Thing("LCDScreen", "当前 AI 机器人的屏幕") {
+    LCDScreen() : Thing("LCDScreen", "屏幕控制") {
 
-        properties_.AddNumberProperty("brightness", "当前屏幕背光亮度百分比", [this]() -> int {
-            auto display = Board::GetInstance().GetDisplay();
-            if (display) {
-                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
-                ESP_LOGD(TAG, "当前背光亮度: %d%%", lcd_display->brightness());
-                return lcd_display->brightness();
-            }
-            return 0;
+        properties_.AddNumberProperty("brightness", "当前亮度百分比", [this]() -> int {
+            auto backlight = Board::GetInstance().GetBacklight();
+            return backlight ? backlight->brightness() : 0;
         });
 
-        methods_.AddMethod("SetBrightness", "设置屏幕背光亮度", ParameterList({
+        methods_.AddMethod("SetBrightness", "设置亮度", ParameterList({
             Parameter("brightness", "0到100之间的整数", kValueTypeNumber, true)
         }), [this](const ParameterList& parameters) {
-            auto display = Board::GetInstance().GetDisplay();
-            if (display) {
-                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
-                lcd_display->SetBacklight(static_cast<uint8_t>(parameters["brightness"].number()));
+            uint8_t brightness = static_cast<uint8_t>(parameters["brightness"].number());
+            auto backlight = Board::GetInstance().GetBacklight();
+            if (backlight) {
+                backlight->SetBrightness(brightness, true);
             }
         });
 
@@ -36,7 +31,7 @@ public:
             auto display = Board::GetInstance().GetDisplay();
             if (display) {
                 auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
-                lcd_display->SwitchPage(XiaoziyunliaoDisplay::PageIndex::PAGE_CONFIG);
+                lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
             }
         });
 
@@ -44,7 +39,7 @@ public:
             auto display = Board::GetInstance().GetDisplay();
             if (display) {
                 auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
-                lcd_display->SwitchPage(XiaoziyunliaoDisplay::PageIndex::PAGE_CHAT);
+                lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
             }
         });
     }

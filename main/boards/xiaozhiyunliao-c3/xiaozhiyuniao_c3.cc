@@ -1,43 +1,42 @@
-#include "xiaozhiyunliao_c3.h"
 #include "wifi_board.h"
 #include "audio_codecs/es8311_audio_codec.h"
+#include "xiaoziyunliao_display.h"
+#include "xiaozhiyunliao_c3.h"
 #include "application.h"
 #include "button.h"
+#include "settings.h"
 #include "config.h"
-#include "i2c_device.h"
-#include "iot/thing_manager.h"
-#include <esp_log.h>
-#include <driver/i2c_master.h>
+#include "font_awesome_symbols.h"
 #include <wifi_station.h>
 #include <ssid_manager.h>
-#include "settings.h"
-#include "esp_sleep.h"
-#include "font_awesome_symbols.h"
+#include <esp_log.h>
+// #include "i2c_device.h"
+#include "iot/thing_manager.h"
+#include <driver/i2c_master.h>
+#include <esp_sleep.h>
 #include <string.h> 
-#include "xiaoziyunliao_display.h"
 #include <wifi_configuration_ap.h>
-#include "assets/lang_config.h"
+#include <assets/lang_config.h>
+
+#define TAG "XiaozhiuunliaoC3"
 
 #if CONFIG_LCD_CONTROLLER_ILI9341
-    #include "esp_lcd_ili9341.h"
+    #include <esp_lcd_ili9341.h>
     #include <driver/spi_common.h>
-    #include "display/lcd_display.h"
     LV_FONT_DECLARE(font_puhui_20_4);
     LV_FONT_DECLARE(font_awesome_20_4);
 #elif CONFIG_LCD_CONTROLLER_ST7789
     #include <esp_lcd_panel_vendor.h>
     #include <driver/spi_common.h>
-    #include "display/lcd_display.h"
     LV_FONT_DECLARE(font_puhui_20_4);
     LV_FONT_DECLARE(font_awesome_20_4);
 #endif
 
-#define TAG "XiaoZhiYunliaoC3"
-
 esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
 uint16_t battCnt;//闪灯次数
-uint16_t battLife = 100; //电量
+uint16_t battLife = 0; //电量
+bool first_speak = false;
 
 // 中断服务程序
 static void IRAM_ATTR batt_mon_isr_handler(void* arg) {
@@ -58,13 +57,7 @@ static void batt_mon_task(void* arg) {
 static void calBattLife(TimerHandle_t xTimer) {
     // 计算电量
     battLife = battCnt;
-    if (battLife >= 1 && battLife <= 80){
-        battLife -= 1;
-    }
-    // 判断IO脚状态
-    if (battCnt == 0 && gpio_get_level(PIN_BATT_MON) == 1) {
-        battLife = 100;
-    }
+
     if (battLife > 100){
         battLife = 100;
     }
@@ -76,10 +69,25 @@ static void calBattLife(TimerHandle_t xTimer) {
 
 XiaoZhiYunliaoC3::XiaoZhiYunliaoC3() 
     : WifiBoard(),
-      boot_button_(BOOT_BUTTON_GPIO, false, 800) {  
+      boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) {  
+    Settings settings("vendor", true);
+    int32_t shutdown_flag = settings.GetInt("shutdown", 0);
+    ESP_LOGI(TAG, "Shutdown flag is %d", (int)shutdown_flag);
+    if(shutdown_flag == 1) {
+        if(boot_button_.getButtonLevel() == 0) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            if(boot_button_.getButtonLevel() == 1) {
+                ESP_LOGI(TAG, "Boot button released");
+                MCUSleep();
+            }
+        }
+        settings.SetInt("shutdown", 0);
+    }
+
     Start5V();
     InitializeI2c();
     InitializeButtons();
+    InitializePowerSaveTimer();
     InitializeIot();
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
@@ -89,8 +97,43 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     InitializeBattMon();
     InitializeBattTimers();
     GetAudioCodec()->SetOutputVolume(70);
+    GetBacklight()->SetBrightness(60);
     ESP_LOGI(TAG, "Inited");
 }
+
+void XiaoZhiYunliaoC3::InitializePowerSaveTimer() {
+    power_save_timer_ = new PowerSaveTimer(-1, 120, 600);
+    power_save_timer_->OnEnterSleepMode([this]() {
+        ESP_LOGI(TAG, "Enabling sleep mode");
+        auto display = GetDisplay();
+        display->SetChatMessage("system", "");
+        display->SetEmotion("sleepy");
+        GetBacklight()->SetBrightness(10);
+        auto codec = GetAudioCodec();
+        codec->EnableInput(false);
+    });
+    power_save_timer_->OnExitSleepMode([this]() {
+        auto codec = GetAudioCodec();
+        codec->EnableInput(true);
+        
+        auto display = GetDisplay();
+        display->SetChatMessage("system", "");
+        display->SetEmotion("neutral");
+        GetBacklight()->RestoreBrightness();
+    });
+    power_save_timer_->OnShutdownRequest([this]() {
+        ESP_LOGI(TAG, "Shutting down");
+        Sleep();
+    });
+    power_save_timer_->SetEnabled(true);
+}
+
+Backlight* XiaoZhiYunliaoC3::GetBacklight() {
+    static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
+    return &backlight;
+}
+
+
 void XiaoZhiYunliaoC3::InitializeBattMon() {
     // 电池电量监测引脚配置
     gpio_config_t io_conf_batt_mon = {
@@ -179,9 +222,7 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
             .icon_font = &font_awesome_20_4,
             .emoji_font = font_emoji_64_init(),
         });
-        std::string helpMessage = IsPressToTalkEnabled() 
-            ? Lang::Strings::HELP1_1
-            : Lang::Strings::HELP1_2;
+        std::string helpMessage = Lang::Strings::HELP1;
         helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP2;
         display_->SetChatMessage("user", helpMessage.c_str());
@@ -222,40 +263,31 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
     boot_button_.OnClick([this]() {
         // ESP_LOGI(TAG, "Button OnClick");
         auto& app = Application::GetInstance();
-        if (!wifi_config_mode_ && app.GetDeviceState() != kDeviceStateActivating && !press_to_talk_enabled_) {
-            // ESP_LOGI(TAG, "ToggleChatState");
-            Application::GetInstance().ToggleChatState();
+        if (!wifi_config_mode_ && app.GetDeviceState() == kDeviceStateIdle && !first_speak) {
+            ESP_LOGI(TAG, "WakeWordInvoke");
+            std::string wake_word=Lang::Strings::WAKE_WORD;
+            app.WakeWordInvoke(wake_word);
+            first_speak = true;
+        } else {
+            app.ToggleChatState();
         }
     });
     boot_button_.OnPressDown([this]() {
         // ESP_LOGI(TAG, "Button OnPressDown");
-        auto& app = Application::GetInstance();
-        if (!wifi_config_mode_ && app.GetDeviceState() != kDeviceStateActivating && press_to_talk_enabled_) {
-            // ESP_LOGI(TAG, "StartListening");
-            Application::GetInstance().StartListening();
-        }
+        power_save_timer_->WakeUp();
     });
     boot_button_.OnPressUp([this]() {
         // ESP_LOGI(TAG, "Button OnPressUp");
-        auto& app = Application::GetInstance();
-        if (!wifi_config_mode_ && app.GetDeviceState() != kDeviceStateActivating && press_to_talk_enabled_) {
-            // ESP_LOGI(TAG, "StopListening");
-            Application::GetInstance().StopListening();
-        }
     });
     boot_button_.OnLongPress([this]() {
-        // ESP_LOGI(TAG, "Button LongPress");
         auto& app = Application::GetInstance();
-        if (wifi_config_mode_ || app.GetDeviceState() == kDeviceStateActivating) {
-            auto display = Board::GetInstance().GetDisplay();
-            auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
-            display->SetStatus(Lang::Strings::SHUTTING_DOWN);
-            if(app.GetDeviceState() == kDeviceStateActivating){
-                lcd_display->HideChatPage();
-            }else{
-                lcd_display->HideSmartConfigPage();
-                StopNetwork();
-            }
+        if (wifi_config_mode_ || app.GetDeviceState() == kDeviceStateActivating ||
+            app.GetDeviceState() == kDeviceStateIdle || display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
+            ESP_LOGI(TAG, "Button LongPress to Sleep");
+            display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
+            display_->HideChatPage();
+            display_->HideSmartConfigPage();
+            display_->DelConfigPage();
             vTaskDelay(pdMS_TO_TICKS(2000));
             Sleep();
         }
@@ -271,7 +303,7 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
     // });  
     boot_button_.OnFourClick([this]() {
         // ESP_LOGI(TAG, "Button OnFourClick");
-        if (display_->GetPageIndex() == XiaoziyunliaoDisplay::PageIndex::PAGE_CONFIG) {
+        if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             auto &ssid_manager = SsidManager::GetInstance();
             ssid_manager.Clear();
             ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
@@ -296,7 +328,6 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
 
 void XiaoZhiYunliaoC3::InitializeIot() {
     Settings settings("vendor");
-    press_to_talk_enabled_ = settings.GetInt("press_to_talk", 0) != 0;
 
     auto& thing_manager = iot::ThingManager::GetInstance();
     thing_manager.AddThing(iot::CreateThing("Speaker"));
@@ -328,9 +359,10 @@ AudioCodec* XiaoZhiYunliaoC3::GetAudioCodec() {
     return &audio_codec;
 }
 
-bool XiaoZhiYunliaoC3::GetBatteryLevel(int &level, bool& charging) {
+bool XiaoZhiYunliaoC3::GetBatteryLevel(int &level, bool& charging, bool& discharging) {
     level = battLife;
     charging = false;
+    discharging = false;
     return true;
 }
 
@@ -366,6 +398,10 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
 
 void XiaoZhiYunliaoC3::Sleep() {
     ESP_LOGI(TAG, "Entering deep sleep");
+    Settings settings("vendor", true);
+    settings.SetInt("shutdown", 1);
+    settings.~Settings();
+
     Application::GetInstance().StopListening();
     if (auto* codec = GetAudioCodec()) {
         codec->EnableOutput(false);
@@ -376,12 +412,15 @@ void XiaoZhiYunliaoC3::Sleep() {
         vQueueDelete(gpio_evt_queue);
         gpio_evt_queue = NULL;
     }
-    display_->SetBacklight(0);
+    GetBacklight()->SetBrightness(0);
     Shutdown5V();
     if (panel) {
-        esp_lcd_panel_reset(panel);
-        esp_lcd_panel_disp_sleep(panel, true);
+        esp_lcd_panel_disp_on_off(panel, false);
     }
+    MCUSleep();
+}
+
+void XiaoZhiYunliaoC3::MCUSleep() {
     gpio_deep_sleep_hold_dis();
     esp_deep_sleep_enable_gpio_wakeup(0b0010, ESP_GPIO_WAKEUP_GPIO_LOW);
     gpio_set_direction(GPIO_NUM_1, GPIO_MODE_INPUT);
@@ -400,14 +439,15 @@ void XiaoZhiYunliaoC3::StopNetwork() {
     display->ShowNotification(Lang::Strings::DISCONNECT);
 }
 
-void XiaoZhiYunliaoC3::SetPressToTalkEnabled(bool enabled) {
-    press_to_talk_enabled_ = enabled;
-    Settings settings("vendor", true);
-    settings.SetInt("press_to_talk", enabled ? 1 : 0);
-}
 
-bool XiaoZhiYunliaoC3::IsPressToTalkEnabled() {
-    return press_to_talk_enabled_;
+std::string XiaoZhiYunliaoC3::GetHardwareVersion() const {
+    std::string version = Lang::Strings::LOGO;
+#if CONFIG_BOARD_TYPE_YUNLIAO_V1
+    version += Lang::Strings::VERSION1;
+#else
+    version += Lang::Strings::VERSION2;
+#endif
+    return version;
 }
 
 DECLARE_BOARD(XiaoZhiYunliaoC3);

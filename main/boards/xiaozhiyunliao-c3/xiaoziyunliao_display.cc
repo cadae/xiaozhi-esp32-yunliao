@@ -14,6 +14,8 @@
 
 LV_FONT_DECLARE(font_awesome_30_4);
 
+constexpr char CONSOLE_URL[] = "https://xiaozhi.me/console";
+constexpr char WIFI_URL[] = "https://iot.espressif.cn/configWXDeviceWiFi.html";
 
 XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
     esp_lcd_panel_io_handle_t panel_io,
@@ -26,15 +28,12 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
     bool swap_xy,
     DisplayFonts fonts)
     : SpiLcdDisplay(panel_io, panel,
-                backlight_pin,
-                backlight_output_invert,
                 width, height,
                 offset_x, offset_y,
                 mirror_x, mirror_y,
                 swap_xy,
                 fonts){
         SetupUI();
-        SetBacklight(60);
         SetLogo(Lang::Strings::LOGO);
 }
 
@@ -83,9 +82,8 @@ void XiaoziyunliaoDisplay::SetupUI() {
     status_label_ = lv_label_create(status_bar_);
     lv_obj_set_flex_grow(status_label_, 1);
     lv_label_set_long_mode(status_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
     lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_CENTER, 0);
-
+    lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
     mute_label_ = lv_label_create(status_bar_);
     lv_label_set_text(mute_label_, "");
     lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
@@ -99,6 +97,7 @@ void XiaoziyunliaoDisplay::SetupUI() {
     lv_label_set_text(battery_label_, "");
     lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
     lv_obj_set_style_pad_left(battery_label_, 3, 0);
+    lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
     /* Content */
     content_ = lv_obj_create(container_);
@@ -122,12 +121,15 @@ void XiaoziyunliaoDisplay::SetStatus(const char* status) {
     current_status_ = status ? status : "";
     if ((old_status != Lang::Strings::ACTIVATION && isActivationStatus()) ||
         (old_status == Lang::Strings::ACTIVATION && !isActivationStatus())) {
+        DelConfigPage();
         NewChatPage();
+        lv_page_index = PageIndex::PAGE_CHAT;
     }
     LcdDisplay::SetStatus(status);    
 }
 
 void XiaoziyunliaoDisplay::SwitchPage(std::optional<PageIndex> target) {
+    DisplayLockGuard lock(this);
     PageIndex new_page = target.value_or(
         (lv_page_index == PageIndex::PAGE_CHAT) ? 
         PageIndex::PAGE_CONFIG : PageIndex::PAGE_CHAT
@@ -157,11 +159,12 @@ void XiaoziyunliaoDisplay::NewSmartConfigPage() {
         lv_qrcode_set_size(smartconfig_qrcode_, 100);
         lv_qrcode_set_dark_color(smartconfig_qrcode_, lv_color_white());
         lv_qrcode_set_light_color(smartconfig_qrcode_, lv_color_black());
-        lv_qrcode_update(smartconfig_qrcode_, "https://iot.espressif.cn/configWXDeviceWiFi.html", strlen("https://iot.espressif.cn/configWXDeviceWiFi.html"));
+        lv_qrcode_update(smartconfig_qrcode_, WIFI_URL, strlen(WIFI_URL));
     }
 }
 
 void XiaoziyunliaoDisplay::HideSmartConfigPage() {
+    DisplayLockGuard lock(this);
     if (smartconfig_qrcode_) {
         lv_obj_add_flag(smartconfig_qrcode_, LV_OBJ_FLAG_HIDDEN);
     }
@@ -172,7 +175,7 @@ void XiaoziyunliaoDisplay::HideSmartConfigPage() {
 
 void XiaoziyunliaoDisplay::SetLogo(const char* logo) {
     DisplayLockGuard lock(this);
-    if (logo_label_) {
+    if (logo_label_ && logo) {
         lv_label_set_text(logo_label_, logo);
     }
 }
@@ -193,23 +196,27 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     // 左侧文本说明区
     config_text_panel_ = lv_label_create(config_container_);
     lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 20);
-    // std::string qrcode_text = Lang::Strings::HELP3;
-
-    lv_label_set_text(config_text_panel_,
-                    "AI语音指令:\n"
-                    "  单击/长按通话\n"
-                    "  关机/重启\n"
-                    "  亮度音量电量\n"
-                    "  重新配网\n"
-                    "按键功能:\n"
-                    "  双击切换页面\n"
-                    "  戳小孔重启"
-                    );
+    std::string hint_text = Lang::Strings::HINT1;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT2;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT3;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT4;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT5;
+    hint_text += "\n";
+    hint_text += Lang::Strings::HINT6;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT7;
+    hint_text += "\n  ";
+    hint_text += Lang::Strings::HINT8;
+    lv_label_set_text(config_text_panel_, hint_text.c_str());
     lv_obj_set_style_text_font(config_text_panel_, fonts_.text_font, 0);
     lv_label_set_long_mode(config_text_panel_, LV_LABEL_LONG_WRAP);
 
     /* 右侧二维码区 */
-    lv_obj_t* right_container = lv_obj_create(config_container_);
+    right_container = lv_obj_create(config_container_);
     lv_obj_remove_style_all(right_container);
     lv_obj_set_size(right_container, 140, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(right_container, LV_FLEX_FLOW_COLUMN);
@@ -218,38 +225,31 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     lv_obj_set_style_flex_cross_place(right_container, LV_FLEX_ALIGN_CENTER, 0);
 
     qrcode_label_ = lv_label_create(right_container);
-    std::string qrcode_text = Lang::Strings::HELP3;
+    std::string qrcode_text = Lang::Strings::LOGO;
+#if CONFIG_BOARD_TYPE_YUNLIAO_V1
+    qrcode_text += Lang::Strings::VERSION1;
+#else
+    qrcode_text += Lang::Strings::VERSION2;
+#endif
     qrcode_text += "\n";
-    qrcode_text += Lang::Strings::HELP4;
+    qrcode_text += Lang::Strings::HELP3;
     lv_label_set_text(qrcode_label_, qrcode_text.c_str());
     lv_obj_set_style_text_font(qrcode_label_, fonts_.text_font, 0);
     lv_obj_set_style_text_line_space(qrcode_label_, 2, 0);
     lv_obj_set_style_text_align(qrcode_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(qrcode_label_, LV_PCT(100));
 
-    // 创建带边框的容器
-    lv_obj_t* border_container = lv_obj_create(right_container);
-    lv_obj_remove_style_all(border_container);
-    lv_obj_set_size(border_container, 126, 126);
-    lv_obj_set_style_border_color(border_container, lv_color_white(), 0);
-    lv_obj_set_style_border_width(border_container, 3, 0);
-    lv_obj_set_style_bg_color(border_container, lv_color_black(), 0);
-    lv_obj_set_style_pad_all(border_container, 0, 0);
-
-    // 在边框容器中创建二维码
-    config_qrcode_panel_ = lv_qrcode_create(border_container);
+    // 直接创建二维码
+    config_qrcode_panel_ = lv_qrcode_create(right_container);
     lv_qrcode_set_size(config_qrcode_panel_, 120);
-    lv_qrcode_set_dark_color(config_qrcode_panel_, lv_color_black());
-    lv_qrcode_set_light_color(config_qrcode_panel_, lv_color_white());
+    lv_qrcode_set_dark_color(config_qrcode_panel_, lv_color_white());
+    lv_qrcode_set_light_color(config_qrcode_panel_, lv_color_black());
     lv_obj_center(config_qrcode_panel_);
-    lv_qrcode_update(config_qrcode_panel_, "https://xiaozhi.me/", strlen("https://xiaozhi.me/"));
+    lv_qrcode_update(config_qrcode_panel_, CONSOLE_URL, strlen(CONSOLE_URL));
 }
 
 void XiaoziyunliaoDisplay::DelConfigPage() {
-    if (config_container_) {
-        lv_obj_del(config_container_);
-        config_container_ = nullptr;
-    }
+    DisplayLockGuard lock(this);
     if (config_text_panel_) {
         lv_obj_del(config_text_panel_);
         config_text_panel_ = nullptr;
@@ -261,6 +261,14 @@ void XiaoziyunliaoDisplay::DelConfigPage() {
     if (qrcode_label_) {
         lv_obj_del(qrcode_label_);
         qrcode_label_ = nullptr;
+    }
+    if (right_container) {
+        lv_obj_del(right_container);
+        right_container = nullptr;
+    }
+    if (config_container_) {
+        lv_obj_del(config_container_);
+        config_container_ = nullptr;
     }
 }
 
@@ -283,7 +291,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
         lv_qrcode_set_size(console_qrcode_, 120);
         lv_qrcode_set_dark_color(console_qrcode_, lv_color_black());
         lv_qrcode_set_light_color(console_qrcode_, lv_color_white());
-        lv_qrcode_update(console_qrcode_, "https://xiaozhi.me/console/agents", strlen("https://xiaozhi.me/console/agents"));
+        lv_qrcode_update(console_qrcode_, CONSOLE_URL, strlen(CONSOLE_URL));
         lv_obj_center(console_qrcode_);
 
         if (emotion_label_) {
@@ -311,6 +319,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
 }
 
 void XiaoziyunliaoDisplay::HideChatPage() {
+    DisplayLockGuard lock(this);
     if (qr_container) {
         lv_obj_add_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
     }
@@ -326,6 +335,7 @@ void XiaoziyunliaoDisplay::HideChatPage() {
 }
 
 void XiaoziyunliaoDisplay::ShowChatPage() {
+    DisplayLockGuard lock(this);
     if (isActivationStatus()) {
         if (qr_container) {
             lv_obj_clear_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
@@ -344,6 +354,7 @@ void XiaoziyunliaoDisplay::ShowChatPage() {
 }
 
 void XiaoziyunliaoDisplay::DelChatPage() {
+    DisplayLockGuard lock(this);
     if (qr_container) {
         lv_obj_del(qr_container);
         qr_container = nullptr;
@@ -366,12 +377,22 @@ bool XiaoziyunliaoDisplay::isActivationStatus() const {
     return current_status_ == Lang::Strings::ACTIVATION;
 }
 
+void XiaoziyunliaoDisplay::Update() {
+    auto& board = Board::GetInstance();
+    int battery_level;
+    bool charging, discharging;
+    if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN)
+         && board.GetBatteryLevel(battery_level, charging, discharging) && battery_level > 0) {
+        lv_obj_clear_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
+    }
+    SpiLcdDisplay::Update();
+}
+
 XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
     DisplayLockGuard lock(this);
     current_status_.clear();
-    DelConfigPage();
-    DelChatPage(); 
     
+    if (config_container_) { lv_obj_del(config_container_); config_container_ = nullptr; }
     if (container_) { lv_obj_del(container_); container_ = nullptr; }
     if (status_bar_) { lv_obj_del(status_bar_); status_bar_ = nullptr; }
     if (logo_label_) { lv_obj_del(logo_label_); logo_label_ = nullptr; }

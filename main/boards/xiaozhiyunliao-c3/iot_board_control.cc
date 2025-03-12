@@ -19,6 +19,7 @@ private:
     TimerHandle_t sleep_timer_;
     enum class TimerMode { SLEEP, RESTART }; 
     TimerMode timer_mode_; 
+    static constexpr int MAX_CHECK_COUNT = 100; // 5秒 / 100ms = 50次检查
 
     std::string GetFirmwareVersion() const {
         return Application::GetInstance().getOta().GetFirmwareVersion();
@@ -35,9 +36,28 @@ private:
     static void SleepTimerCallback(TimerHandle_t xTimer) {
         BoardControl* instance = static_cast<BoardControl*>(pvTimerGetTimerID(xTimer));
         if (instance->timer_mode_ == TimerMode::SLEEP) {
-            ESP_LOGI(TAG, "System entering sleep mode after delay");
-            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
-            board->Sleep();
+            ESP_LOGI(TAG, "开始检查设备状态，准备进入睡眠模式");
+            xTaskCreate([](void* pvParameters) {
+                BoardControl* instance = static_cast<BoardControl*>(pvParameters);
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                auto& app = Application::GetInstance();
+                
+                int check_count = 0;
+                while (check_count < instance->MAX_CHECK_COUNT) {
+                    if (app.GetDeviceState() == kDeviceStateIdle) {
+                        ESP_LOGI(TAG, "设备空闲，立即进入睡眠模式");
+                        board->Sleep();
+                        break;
+                    }
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    check_count++;
+                }
+                if (check_count >= instance->MAX_CHECK_COUNT) {
+                    ESP_LOGI(TAG, "检查超时，设备进入睡眠模式");
+                    board->Sleep();
+                }
+                vTaskDelete(NULL);
+            }, "StateCheckTask", 2048, instance, 1, NULL);
         } else {
             ESP_LOGI(TAG, "System restarting after delay");
             esp_restart();
@@ -45,7 +65,7 @@ private:
     }
 
 public:
-    BoardControl() : Thing("BoardControl", "当前 AI 机器人管理和控制"), timer_mode_(TimerMode::SLEEP) {
+    BoardControl() : Thing("BoardControl", "当前机器信息和控制"), timer_mode_(TimerMode::SLEEP) {
 
         sleep_timer_ = xTimerCreate("SleepTimer", pdMS_TO_TICKS(5000), pdFALSE, this, SleepTimerCallback);
 
@@ -59,21 +79,32 @@ public:
             }
         });
         
-        properties_.AddNumberProperty("BatteryLevel", "当前电池电量百分比", [this]() -> int {
+        properties_.AddNumberProperty("BatteryLevel", "当前电量百分比", [this]() -> int {
             int level = 0;
             bool charging = false;
-            Board::GetInstance().GetBatteryLevel(level, charging);
+            bool discharging = false;
+            Board::GetInstance().GetBatteryLevel(level, charging, discharging);
             // ESP_LOGI(TAG, "当前电池电量: %d%%, 充电状态: %s", level, charging ? "充电中" : "未充电");
             return level;
         });
 
-        properties_.AddBooleanProperty("Charging", "是否正在充电", [this]() -> bool {
-            int level = 0;
-            bool charging = false;
-            Board::GetInstance().GetBatteryLevel(level, charging);
-            // ESP_LOGI(TAG, "当前电池电量: %d%%, 充电状态: %s", level, charging ? "充电中" : "未充电");
-            return charging;
-        });
+        // properties_.AddBooleanProperty("Charging", "是否正在充电", [this]() -> bool {
+        //     int level = 0;
+        //     bool charging = false;
+        //     bool discharging = false;
+        //     Board::GetInstance().GetBatteryLevel(level, charging, discharging);
+        //     // ESP_LOGI(TAG, "当前电池电量: %d%%, 充电状态: %s", level, charging ? "充电中" : "未充电");
+        //     return charging;
+        // });
+
+        properties_.AddStringProperty("HardwareVersion", "机器硬件版本", 
+            [this]() -> std::string { 
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                return board->GetHardwareVersion();
+            });
+
+        properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
+            [this]() -> std::string { return GetFirmwareVersion(); });
 
         properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
             [this]() -> std::string { return GetFirmwareVersion(); });
@@ -96,20 +127,7 @@ public:
         properties_.AddNumberProperty("FreeHeap", "可用内存(bytes)",
             []() -> int { return SystemInfo::GetFreeHeapSize(); });
 
-        properties_.AddBooleanProperty("enabled", "true 表示长按说话模式，false 表示单击说话模式", []() -> bool {
-            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
-            return board->IsPressToTalkEnabled();
-        });
-
-        methods_.AddMethod("SetEnabled", "启用或禁用长按说话模式，调用前需要经过用户确认", ParameterList({
-            Parameter("enabled", "true 表示长按说话模式，false 表示单击说话模式", kValueTypeBoolean, true)
-        }), [](const ParameterList& parameters) {
-            bool enabled = parameters["enabled"].boolean();
-            auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
-            board->SetPressToTalkEnabled(enabled);
-        });
-
-        methods_.AddMethod("Sleep", "延迟5秒后进入关机状态", ParameterList(), 
+        methods_.AddMethod("Sleep", "延迟5秒后进入关机状态，调用前需要经过再次确认", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying sleep for 5 seconds");
                 if (sleep_timer_ != NULL) {
@@ -118,7 +136,7 @@ public:
                 }
             });
 
-        methods_.AddMethod("Restart", "延迟5秒后重启设备", ParameterList(),
+        methods_.AddMethod("Restart", "延迟5秒后重启设备，调用前需要经过再次确认", ParameterList(),
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying restart for 5 seconds");
                 if (sleep_timer_ != NULL) {
@@ -127,7 +145,7 @@ public:
                 }
             });
 
-        methods_.AddMethod("ResetWifiConfiguration", "重新配网", ParameterList(), 
+        methods_.AddMethod("ResetWifiConfiguration", "重新配网，调用前需要经过再次确认", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "ResetWifiConfiguration");
                 auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());

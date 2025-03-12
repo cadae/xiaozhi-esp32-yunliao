@@ -13,6 +13,7 @@
 #include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "xiaoziyunliao_display.h"
+#include "power_save_timer.h"
 
 class XiaoziyunliaoDisplay;
 
@@ -21,7 +22,7 @@ private:
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;
     TimerHandle_t batt_ticker_;
-    bool press_to_talk_enabled_ = false;
+    PowerSaveTimer* power_save_timer_;
     
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     XiaoziyunliaoDisplay* display_;
@@ -37,6 +38,7 @@ private:
     void InitializeBattTimers();
     void Start5V();
     void Shutdown5V();
+    void InitializePowerSaveTimer();
 
 public:
     XiaoZhiYunliaoC3();
@@ -45,14 +47,15 @@ public:
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     virtual Display* GetDisplay() override;
 #endif
-
+    virtual Backlight* GetBacklight() override;
     virtual AudioCodec* GetAudioCodec() override;
-    bool GetBatteryLevel(int &level, bool& charging) override;
+    bool GetBatteryLevel(int &level, bool& charging, bool& discharging) override;
     void EnterWifiConfigMode() override;
     void Sleep();
     void StopNetwork();
     void SetPressToTalkEnabled(bool enabled);
-    bool IsPressToTalkEnabled();
+    std::string GetHardwareVersion() const;
+    void MCUSleep();
 };
 
 #endif // XIAOZHIYUNLIAO_C3_H 
