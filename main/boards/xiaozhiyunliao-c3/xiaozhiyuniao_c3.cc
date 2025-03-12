@@ -36,7 +36,6 @@ esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
 uint16_t battCnt;//闪灯次数
 uint16_t battLife = 0; //电量
-bool first_speak = false;
 
 // 中断服务程序
 static void IRAM_ATTR batt_mon_isr_handler(void* arg) {
@@ -263,14 +262,8 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
     boot_button_.OnClick([this]() {
         // ESP_LOGI(TAG, "Button OnClick");
         auto& app = Application::GetInstance();
-        if (!wifi_config_mode_ && app.GetDeviceState() == kDeviceStateIdle && !first_speak) {
-            ESP_LOGI(TAG, "WakeWordInvoke");
-            std::string wake_word=Lang::Strings::WAKE_WORD;
-            app.WakeWordInvoke(wake_word);
-            first_speak = true;
-        } else {
-            app.ToggleChatState();
-        }
+        std::string wake_word=Lang::Strings::WAKE_WORD;
+        app.WakeWordInvoke(wake_word);
     });
     boot_button_.OnPressDown([this]() {
         // ESP_LOGI(TAG, "Button OnPressDown");

@@ -14,7 +14,15 @@
         "SHUTTING_DOWN": "Shutting down...",
         "SCAN_QR": "WeChat scan QR, or ",
         "HINT_SHUTDOWN": "(press 1 second to shutdown)",
-        
+        "HINT1": "AI voice command",
+        "HINT2": "Shutdown/Restart",
+        "HINT3": "Brightness/Volume/Battery",
+        "HINT4": "Software/Hardware Information",
+        "HINT5": "Re-configure network",
+        "HINT6": "Key function",
+        "HINT7": "Long press shutdown",
+        "HINT8": "Tap the small hole to restart",
+
         "WARNING": "Warning",
         "INFO": "Information",
         "ERROR": "Error",

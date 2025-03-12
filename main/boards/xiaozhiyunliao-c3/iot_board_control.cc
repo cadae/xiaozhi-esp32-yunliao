@@ -103,17 +103,14 @@ public:
                 return board->GetHardwareVersion();
             });
 
-        properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
-            [this]() -> std::string { return GetFirmwareVersion(); });
-
-        properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
-            [this]() -> std::string { return GetFirmwareVersion(); });
+        // properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
+        //     [this]() -> std::string { return GetFirmwareVersion(); });
 
         properties_.AddStringProperty("CurrentVersion", "当前固件版本",
             [this]() -> std::string { return GetCurrentVersion(); });
 
-        properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
-            [this]() -> bool { return HasNewVersion(); });
+        // properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
+        //     [this]() -> bool { return HasNewVersion(); });
 
         properties_.AddStringProperty("MACAddress", "设备MAC地址",
             []() -> std::string { return SystemInfo::GetMacAddress(); });
