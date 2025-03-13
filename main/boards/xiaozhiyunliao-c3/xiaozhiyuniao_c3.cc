@@ -69,19 +69,6 @@ static void calBattLife(TimerHandle_t xTimer) {
 XiaoZhiYunliaoC3::XiaoZhiYunliaoC3() 
     : WifiBoard(),
       boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) {  
-    Settings settings("vendor", true);
-    int32_t shutdown_flag = settings.GetInt("shutdown", 0);
-    ESP_LOGI(TAG, "Shutdown flag is %d", (int)shutdown_flag);
-    if(shutdown_flag == 1) {
-        if(boot_button_.getButtonLevel() == 0) {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            if(boot_button_.getButtonLevel() == 1) {
-                ESP_LOGI(TAG, "Boot button released");
-                MCUSleep();
-            }
-        }
-        settings.SetInt("shutdown", 0);
-    }
 
     Start5V();
     InitializeI2c();
@@ -391,9 +378,6 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
 
 void XiaoZhiYunliaoC3::Sleep() {
     ESP_LOGI(TAG, "Entering deep sleep");
-    Settings settings("vendor", true);
-    settings.SetInt("shutdown", 1);
-    settings.~Settings();
 
     Application::GetInstance().StopListening();
     if (auto* codec = GetAudioCodec()) {
