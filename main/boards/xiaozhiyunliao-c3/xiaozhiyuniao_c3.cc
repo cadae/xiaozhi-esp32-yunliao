@@ -17,6 +17,7 @@
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
+#include "esp_efuse_table.h"
 
 #define TAG "XiaozhiuunliaoC3"
 
@@ -68,7 +69,14 @@ static void calBattLife(TimerHandle_t xTimer) {
 
 XiaoZhiYunliaoC3::XiaoZhiYunliaoC3() 
     : WifiBoard(),
-      boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) {  
+      boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) { 
+
+    Settings settings("vendor", true);
+    int32_t efuse_flag = settings.GetInt("efuse", 0);
+    if(efuse_flag == 0) {
+        esp_efuse_write_field_bit(ESP_EFUSE_VDD_SPI_AS_GPIO);
+        settings.SetInt("efuse", 1);
+    }
 
     Start5V();
     InitializeI2c();
