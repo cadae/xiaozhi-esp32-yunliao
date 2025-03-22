@@ -206,12 +206,16 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
         {                
             .text_font = &font_puhui_20_4,
             .icon_font = &font_awesome_20_4,
+#if CONFIG_USE_WECHAT_MESSAGE_STYLE
+            .emoji_font = font_emoji_32_init(),
+#else
             .emoji_font = font_emoji_64_init(),
+#endif
         });
         std::string helpMessage = Lang::Strings::HELP1;
         helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP2;
-        display_->SetChatMessage("user", helpMessage.c_str());
+        display_->SetChatMessage("system", helpMessage.c_str());
 }
 #endif    
 void XiaoZhiYunliaoC3::Start5V(){
@@ -363,7 +367,7 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
     hint += wifi_ap.GetWebServerUrl();
     hint += Lang::Strings::HINT_SHUTDOWN;
     
-    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "", Lang::Sounds::P3_WIFICONFIG);
+    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
 
     auto display = Board::GetInstance().GetDisplay();
     static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();

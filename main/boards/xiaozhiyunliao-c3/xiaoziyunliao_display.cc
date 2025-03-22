@@ -39,80 +39,81 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
 
 
 void XiaoziyunliaoDisplay::SetupUI() {
-    DisplayLockGuard lock(this);
+    // DisplayLockGuard lock(this);
 
-    auto screen = lv_screen_active();
-    lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
-    lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
+    // auto screen = lv_screen_active();
+    // lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
+    // lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     
 
-    /* Container */
-    container_ = lv_obj_create(screen);
-    lv_obj_set_size(container_, LV_HOR_RES, LV_VER_RES);
-    lv_obj_set_flex_flow(container_, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(container_, 0, 0);
-    lv_obj_set_style_border_width(container_, 0, 0);
-    lv_obj_set_style_pad_row(container_, 0, 0);
+    // /* Container */
+    // container_ = lv_obj_create(screen);
+    // lv_obj_set_size(container_, LV_HOR_RES, LV_VER_RES);
+    // lv_obj_set_flex_flow(container_, LV_FLEX_FLOW_COLUMN);
+    // lv_obj_set_style_pad_all(container_, 0, 0);
+    // lv_obj_set_style_border_width(container_, 0, 0);
+    // lv_obj_set_style_pad_row(container_, 0, 0);
 
-    /* Status bar */
-    status_bar_ = lv_obj_create(container_);
-    lv_obj_set_size(status_bar_, LV_HOR_RES, fonts_.text_font->line_height);
-    lv_obj_set_style_radius(status_bar_, 0, 0);
-    lv_obj_set_style_text_color(status_bar_, lv_color_make(0xAf, 0xAf, 0xAf), 0);
-    lv_obj_set_style_bg_color(status_bar_, lv_color_black(), 0);
+    // /* Status bar */
+    // status_bar_ = lv_obj_create(container_);
+    // lv_obj_set_size(status_bar_, LV_HOR_RES, fonts_.text_font->line_height);
+    // lv_obj_set_style_radius(status_bar_, 0, 0);
+    // lv_obj_set_style_text_color(status_bar_, lv_color_make(0xAf, 0xAf, 0xAf), 0);
+    // lv_obj_set_style_bg_color(status_bar_, lv_color_black(), 0);
     
-    /* Status bar */
-    lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_all(status_bar_, 0, 0);
-    lv_obj_set_style_border_width(status_bar_, 0, 0);
-    lv_obj_set_style_pad_column(status_bar_, 0, 0);
-    lv_obj_set_style_pad_left(status_bar_, 2, 0);
-    lv_obj_set_style_pad_right(status_bar_, 2, 0);
+    // /* Status bar */
+    // lv_obj_set_flex_flow(status_bar_, LV_FLEX_FLOW_ROW);
+    // lv_obj_set_style_pad_all(status_bar_, 0, 0);
+    // lv_obj_set_style_border_width(status_bar_, 0, 0);
+    // lv_obj_set_style_pad_column(status_bar_, 0, 0);
+    // lv_obj_set_style_pad_left(status_bar_, 2, 0);
+    // lv_obj_set_style_pad_right(status_bar_, 2, 0);
 
-    logo_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(logo_label_, "");
-    lv_obj_set_style_text_font(logo_label_, fonts_.text_font, 0);
+    // logo_label_ = lv_label_create(status_bar_);
+    // lv_label_set_text(logo_label_, "");
+    // lv_obj_set_style_text_font(logo_label_, fonts_.text_font, 0);
 
-    notification_label_ = lv_label_create(status_bar_);
-    lv_obj_set_flex_grow(notification_label_, 1);
-    lv_obj_set_style_text_align(notification_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(notification_label_, "");
-    lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
+    // notification_label_ = lv_label_create(status_bar_);
+    // lv_obj_set_flex_grow(notification_label_, 1);
+    // lv_obj_set_style_text_align(notification_label_, LV_TEXT_ALIGN_CENTER, 0);
+    // lv_label_set_text(notification_label_, "");
+    // lv_obj_add_flag(notification_label_, LV_OBJ_FLAG_HIDDEN);
 
-    status_label_ = lv_label_create(status_bar_);
-    lv_obj_set_flex_grow(status_label_, 1);
-    lv_label_set_long_mode(status_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
-    mute_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(mute_label_, "");
-    lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
+    // status_label_ = lv_label_create(status_bar_);
+    // lv_obj_set_flex_grow(status_label_, 1);
+    // lv_label_set_long_mode(status_label_, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    // lv_obj_set_style_text_align(status_label_, LV_TEXT_ALIGN_CENTER, 0);
+    // lv_label_set_text(status_label_, Lang::Strings::INITIALIZING);
+    // mute_label_ = lv_label_create(status_bar_);
+    // lv_label_set_text(mute_label_, "");
+    // lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
 
-    network_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(network_label_, "");
-    lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);
-    lv_obj_set_style_pad_left(network_label_, 3, 0);
+    // network_label_ = lv_label_create(status_bar_);
+    // lv_label_set_text(network_label_, "");
+    // lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);
+    // lv_obj_set_style_pad_left(network_label_, 3, 0);
 
-    battery_label_ = lv_label_create(status_bar_);
-    lv_label_set_text(battery_label_, "");
-    lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
-    lv_obj_set_style_pad_left(battery_label_, 3, 0);
-    lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
+    // battery_label_ = lv_label_create(status_bar_);
+    // lv_label_set_text(battery_label_, "");
+    // lv_obj_set_style_text_font(battery_label_, fonts_.icon_font, 0);
+    // lv_obj_set_style_pad_left(battery_label_, 3, 0);
+    // lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
-    /* Content */
-    content_ = lv_obj_create(container_);
-    lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_set_style_radius(content_, 0, 0);
-    lv_obj_set_width(content_, LV_HOR_RES);
-    lv_obj_set_flex_grow(content_, 1);
+    // /* Content */
+    // content_ = lv_obj_create(container_);
+    // lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
+    // lv_obj_set_style_radius(content_, 0, 0);
+    // lv_obj_set_width(content_, LV_HOR_RES);
+    // lv_obj_set_flex_grow(content_, 1);
     
-    lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN); // 垂直布局（从上到下）
-    lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY); // 子对象居中对齐，等距分布
-    lv_obj_set_style_border_width(content_, 0, 0);
-    lv_obj_set_style_bg_color(content_, lv_color_black(), 0);
-    lv_obj_set_style_text_color(content_, lv_color_white(), 0);
+    // lv_obj_set_flex_flow(content_, LV_FLEX_FLOW_COLUMN); // 垂直布局（从上到下）
+    // lv_obj_set_flex_align(content_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_EVENLY); // 子对象居中对齐，等距分布
+    // lv_obj_set_style_border_width(content_, 0, 0);
+    // lv_obj_set_style_bg_color(content_, lv_color_black(), 0);
+    // lv_obj_set_style_text_color(content_, lv_color_white(), 0);
 
-    NewChatPage();
+    // NewChatPage();
+    SpiLcdDisplay::SetupUI();
 }
 
 void XiaoziyunliaoDisplay::SetStatus(const char* status) {
