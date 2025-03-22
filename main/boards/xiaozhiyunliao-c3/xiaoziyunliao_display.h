@@ -33,6 +33,7 @@ public:
 
     void SetLogo(const char* logo);
     void SetStatus(const char* status) override;
+    virtual void SetChatMessage(const char* role, const char* content) override; 
 
     PageIndex GetPageIndex() const { return lv_page_index; }
     void SwitchPage(std::optional<PageIndex> target = std::nullopt);
@@ -45,6 +46,7 @@ public:
     void ShowChatPage();
     void HideChatPage();
     bool isActivationStatus() const;
+    bool isWifiConfigStatus() const;
     const std::string& GetCurrentStatus() const { return current_status_; }
 
 protected:
