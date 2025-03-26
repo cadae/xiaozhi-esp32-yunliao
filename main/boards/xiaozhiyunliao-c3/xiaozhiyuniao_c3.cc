@@ -36,8 +36,8 @@
     LV_FONT_DECLARE(font_noto_20_4_ja_jp);
     #define FONT font_noto_20_4_ja_jp
 #else
-    LV_FONT_DECLARE(font_puhui_20_4_zh_cn);
-    #define FONT font_puhui_20_4_zh_cn
+    LV_FONT_DECLARE(font_puhui_20_4);
+    #define FONT font_puhui_20_4
 #endif
 
 esp_lcd_panel_handle_t panel = nullptr;
