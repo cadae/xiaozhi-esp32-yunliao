@@ -8,7 +8,8 @@
 #include <vector>
 #include <esp_lvgl_port.h>
 #include "board.h"
-#include <string.h> 
+#include <string.h>
+#include "gb2big.h"
 
 #define TAG "XiaoziyunliaoDisplay"
 
@@ -541,6 +542,47 @@ void XiaoziyunliaoDisplay::SetupUI() {
 }
 void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content) {
     DisplayLockGuard lock(this);
+#if (defined  zh_tw)
+    std::string converted_content;
+    if (content) {
+        const unsigned char* p = (const unsigned char*)content;
+        while (*p) {
+            if (*p < 0x80) {
+                converted_content += *p;
+                p++;
+            } else if ((*p & 0xE0) == 0xC0) {
+                converted_content += *p;
+                converted_content += *(p+1);
+                p += 2;
+            } else if ((*p & 0xF0) == 0xE0) {
+                uint16_t unicode = ((p[0] & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
+                uint16_t b = 0;
+                if (unicode >= 0x4E00 && unicode <= 0x9FA5) {
+                    b = g2b(unicode);
+                }
+                if (b != 0) {
+                    converted_content += (0xE0 | ((b >> 12) & 0x0F));
+                    converted_content += (0x80 | ((b >> 6) & 0x3F));
+                    converted_content += (0x80 | (b & 0x3F));
+                } else {
+                    converted_content += *p;
+                    converted_content += *(p+1);
+                    converted_content += *(p+2);
+                }
+                p += 3;
+            } else if ((*p & 0xF8) == 0xF0) {
+                converted_content += *p;
+                converted_content += *(p+1);
+                converted_content += *(p+2);
+                converted_content += *(p+3);
+                p += 4;
+            } else {
+                p++;
+            }
+        }
+    }
+    ESP_LOGI(TAG, "%s", converted_content.c_str());    
+#endif    
     SpiLcdDisplay::SetChatMessage(role, content);
 }
 
