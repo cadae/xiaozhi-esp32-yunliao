@@ -292,12 +292,57 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
     
     //避免出现空的消息框
     if(strlen(content) == 0) return;
+    
+#if (defined  zh_tw)
+    std::string converted_content;
+    if (content) {
+        const unsigned char* p = (const unsigned char*)content;
+        while (*p) {
+            if (*p < 0x80) {
+                converted_content += *p;
+                p++;
+            } else if ((*p & 0xE0) == 0xC0) {
+                converted_content += *p;
+                converted_content += *(p+1);
+                p += 2;
+            } else if ((*p & 0xF0) == 0xE0) {
+                uint16_t unicode = ((p[0] & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F);
+                uint16_t b = 0;
+                if (unicode >= 0x4E00 && unicode <= 0x9FA5) {
+                    b = g2b(unicode);
+                }
+                if (b != 0) {
+                    converted_content += (0xE0 | ((b >> 12) & 0x0F));
+                    converted_content += (0x80 | ((b >> 6) & 0x3F));
+                    converted_content += (0x80 | (b & 0x3F));
+                } else {
+                    converted_content += *p;
+                    converted_content += *(p+1);
+                    converted_content += *(p+2);
+                }
+                p += 3;
+            } else if ((*p & 0xF8) == 0xF0) {
+                converted_content += *p;
+                converted_content += *(p+1);
+                converted_content += *(p+2);
+                converted_content += *(p+3);
+                p += 4;
+            } else {
+                p++;
+            }
+        }
+    }
+    ESP_LOGI(TAG, "%s", converted_content.c_str());    
+    const char* display_content = converted_content.c_str();
+#else
+    const char* display_content = content;
+#endif
 
     if (isActivationStatus() || isWifiConfigStatus()) {
         if (chat_message_label_ == nullptr) {
             return;
         }
-        lv_label_set_text(chat_message_label_, content);
+        lv_label_set_text(chat_message_label_, display_content);
     }else{
         // Create a message bubble
         lv_obj_t* msg_bubble = lv_obj_create(content_);
@@ -309,10 +354,10 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
 
         // Create the message text
         lv_obj_t* msg_text = lv_label_create(msg_bubble);
-        lv_label_set_text(msg_text, content);
+        lv_label_set_text(msg_text, display_content);
         
         // 计算文本实际宽度
-        lv_coord_t text_width = lv_txt_get_width(content, strlen(content), fonts_.text_font, 0);
+        lv_coord_t text_width = lv_txt_get_width(display_content, strlen(display_content), fonts_.text_font, 0);
 
         // 计算气泡宽度
         lv_coord_t max_width = LV_HOR_RES * 85 / 100 - 16;  // 屏幕宽度的85%
@@ -453,6 +498,9 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
             if (oldest_msg != nullptr) {
                 lv_obj_del(oldest_msg);
                 msg_count--;
+                // 删除最早的消息会导致所有气泡整体往上移
+                // 所以需要重新滚动到当前消息气泡位置
+                lv_obj_scroll_to_view_recursive(msg_bubble, LV_ANIM_ON);
             }else{
                 break;
             }
@@ -581,9 +629,11 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
             }
         }
     }
-    ESP_LOGI(TAG, "%s", converted_content.c_str());    
-#endif    
+    ESP_LOGI(TAG, "%s", converted_content.c_str());
+    SpiLcdDisplay::SetChatMessage(role, converted_content.c_str());
+#else
     SpiLcdDisplay::SetChatMessage(role, content);
+#endif    
 }
 
 void XiaoziyunliaoDisplay::NewChatPage() {

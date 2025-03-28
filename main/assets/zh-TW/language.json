@@ -3,7 +3,7 @@
         "type": "zh-TW"
     },
     "strings": {
-        "WAKE_WORD": "你好",
+        "WAKE_WORD": "你好(用繁体回复)",
         "LOGO": "小智雲聊",
         "VERSION1": "第一代",
         "VERSION2": "第二代",
