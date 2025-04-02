@@ -344,6 +344,20 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
         }
         lv_label_set_text(chat_message_label_, display_content);
     }else{
+        // 检查消息数量是否超过限制
+        uint32_t child_count = lv_obj_get_child_cnt(content_);
+        if (child_count >= MAX_MESSAGES) {
+            // 删除最早的消息（第一个子对象）
+            lv_obj_t* first_child = lv_obj_get_child(content_, 0);
+            lv_obj_t* last_child = lv_obj_get_child(content_, child_count - 1);
+            if (first_child != nullptr) {
+                lv_obj_del(first_child);
+            }
+            // Scroll to the last message immediately
+            if (last_child != nullptr) {
+                lv_obj_scroll_to_view_recursive(last_child, LV_ANIM_OFF);
+            }
+        }
         // Create a message bubble
         lv_obj_t* msg_bubble = lv_obj_create(content_);
         lv_obj_set_style_radius(msg_bubble, 8, 0);
@@ -489,23 +503,6 @@ void XiaoziyunliaoDisplay::SetChatMessage(const char* role, const char* content)
         
         // Store reference to the latest message label
         chat_message_label_ = msg_text;
-
-        // 检查消息数量是否超过限制
-        uint32_t msg_count = lv_obj_get_child_cnt(content_);
-        while (msg_count >= MAX_MESSAGES) {
-            // 删除最早的消息（第一个子节点）
-            lv_obj_t* oldest_msg = lv_obj_get_child(content_, 0);
-            if (oldest_msg != nullptr) {
-                lv_obj_del(oldest_msg);
-                msg_count--;
-                // 删除最早的消息会导致所有气泡整体往上移
-                // 所以需要重新滚动到当前消息气泡位置
-                lv_obj_scroll_to_view_recursive(msg_bubble, LV_ANIM_ON);
-            }else{
-                break;
-            }
-        }
-
     }
 }
 
