@@ -772,7 +772,7 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     left_width =  160;
     right_width = 140;
 #elif (defined  ja_jp)
-    left_width =  130;
+    left_width =  140;
     right_width = 130;
 #elif (defined  en_us)
     left_width =  170;
