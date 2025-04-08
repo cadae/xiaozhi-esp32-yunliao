@@ -18,7 +18,7 @@
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
 
-#define TAG "XiaozhiuunliaoC3"
+#define TAG "YunliaoC3"
 
 #if CONFIG_LCD_CONTROLLER_ILI9341
     #include <esp_lcd_ili9341.h>
@@ -368,7 +368,11 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
     wifi_ap.Start();
     wifi_ap.StartSmartConfig();
 
+#if (defined  ja_jp)
+    std::string hint = "";
+#else
     std::string hint = Lang::Strings::SCAN_QR;
+#endif
     hint += Lang::Strings::CONNECT_TO_HOTSPOT;
     hint += wifi_ap.GetSsid();
     hint += Lang::Strings::ACCESS_VIA_BROWSER;

@@ -11,7 +11,7 @@
 #include <string.h>
 #include "gb2big.h"
 
-#define TAG "XiaoziyunliaoDisplay"
+#define TAG "YunliaoDisplay"
 
 LV_FONT_DECLARE(font_awesome_30_4);
 
@@ -717,7 +717,7 @@ void XiaoziyunliaoDisplay::NewSmartConfigPage() {
     if (emotion_label_) {
         lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     }
-
+#if (not defined  ja_jp)
     if (content_) {
         smartconfig_qrcode_ = lv_qrcode_create(content_);
         lv_qrcode_set_size(smartconfig_qrcode_, 100);
@@ -725,6 +725,7 @@ void XiaoziyunliaoDisplay::NewSmartConfigPage() {
         lv_qrcode_set_light_color(smartconfig_qrcode_, lv_color_black());
         lv_qrcode_update(smartconfig_qrcode_, WIFI_URL, strlen(WIFI_URL));
     }
+#endif
 }
 
 void XiaoziyunliaoDisplay::HideSmartConfigPage() {
@@ -744,9 +745,17 @@ void XiaoziyunliaoDisplay::SetLogo(const char* logo) {
     }
 }
 
+#if (defined  ja_jp)
+    LV_FONT_DECLARE(font_noto_14_1_ja_jp);
+    #define FONT2 &font_noto_14_1_ja_jp
+#else
+    #define FONT2 fonts_.text_font
+#endif
+
 void XiaoziyunliaoDisplay::NewConfigPage() {
     DisplayLockGuard lock(this);
     DelConfigPage();
+    
     // 创建配置页面
     config_container_ = lv_obj_create(content_);
     lv_obj_remove_style_all(config_container_);
@@ -757,9 +766,23 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     lv_obj_set_style_flex_main_place(config_container_, LV_FLEX_ALIGN_CENTER, 0);
     lv_obj_set_style_flex_cross_place(config_container_, LV_FLEX_ALIGN_CENTER, 0);
 
+    uint8_t left_width =  170;
+    uint8_t right_width = 140;
+#if (defined  zh_tw)
+    left_width =  160;
+    right_width = 140;
+#elif (defined  ja_jp)
+    left_width =  130;
+    right_width = 130;
+#elif (defined  en_us)
+    left_width =  170;
+    right_width = 140;
+#endif
+
+
     // 左侧文本说明区
     config_text_panel_ = lv_label_create(config_container_);
-    lv_obj_set_width(config_text_panel_, LV_HOR_RES - 150 - 20);
+    lv_obj_set_width(config_text_panel_, LV_HOR_RES - left_width);
     std::string hint_text = Lang::Strings::HINT1;
     hint_text += "\n  ";
     hint_text += Lang::Strings::HINT2;
@@ -776,13 +799,13 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     hint_text += "\n  ";
     hint_text += Lang::Strings::HINT8;
     lv_label_set_text(config_text_panel_, hint_text.c_str());
-    lv_obj_set_style_text_font(config_text_panel_, fonts_.text_font, 0);
+    lv_obj_set_style_text_font(config_text_panel_, FONT2, 0);
     lv_label_set_long_mode(config_text_panel_, LV_LABEL_LONG_WRAP);
 
     /* 右侧二维码区 */
     right_container = lv_obj_create(config_container_);
     lv_obj_remove_style_all(right_container);
-    lv_obj_set_size(right_container, 140, LV_SIZE_CONTENT);
+    lv_obj_set_size(right_container, right_width, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(right_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_gap(right_container, 5, 0);
     lv_obj_set_style_flex_main_place(right_container, LV_FLEX_ALIGN_CENTER, 0);
@@ -798,7 +821,7 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
     qrcode_text += "\n";
     qrcode_text += Lang::Strings::HELP3;
     lv_label_set_text(qrcode_label_, qrcode_text.c_str());
-    lv_obj_set_style_text_font(qrcode_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_font(qrcode_label_, FONT2, 0);
     lv_obj_set_style_text_line_space(qrcode_label_, 2, 0);
     lv_obj_set_style_text_align(qrcode_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(qrcode_label_, LV_PCT(100));
