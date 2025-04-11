@@ -15,7 +15,6 @@
 #include <cJSON.h>
 #include <driver/gpio.h>
 #include <arpa/inet.h>
-#include <esp_app_desc.h>
 
 #define TAG "Application"
 
@@ -63,15 +62,11 @@ Application::~Application() {
 }
 
 void Application::CheckNewVersion() {
-    auto& board = Board::GetInstance();
-    auto display = board.GetDisplay();
-    // Check if there is a new firmware version available
-    ota_.SetPostData(board.GetJson());
-
     const int MAX_RETRY = 10;
     int retry_count = 0;
 
     while (true) {
+        auto display = Board::GetInstance().GetDisplay();
         if (!ota_.CheckVersion()) {
             retry_count++;
             if (retry_count >= MAX_RETRY) {
@@ -450,19 +445,11 @@ void Application::Start() {
     protocol_->Start();
 
     // Check for new firmware version or get the MQTT broker address
-    ota_.SetCheckVersionUrl(CONFIG_OTA_VERSION_URL);
-    ota_.SetHeader("Device-Id", SystemInfo::GetMacAddress().c_str());
-    ota_.SetHeader("Client-Id", board.GetUuid());
-    ota_.SetHeader("Accept-Language", Lang::CODE);
-    auto app_desc = esp_app_get_description();
-    ota_.SetHeader("User-Agent", std::string(BOARD_NAME "/") + app_desc->version);
-
-    CheckNewVersion();
-    // xTaskCreate([](void* arg) {
-    //     Application* app = (Application*)arg;
-    //     app->CheckNewVersion();
-    //     vTaskDelete(NULL);
-    // }, "check_new_version", 4096 * 2, this, 2, nullptr);
+    xTaskCreate([](void* arg) {
+        Application* app = (Application*)arg;
+        app->CheckNewVersion();
+        vTaskDelete(NULL);
+    }, "check_new_version", 4096 * 2, this, 2, nullptr);
 
 #if CONFIG_USE_AUDIO_PROCESSOR
     audio_processor_.Initialize(codec, realtime_chat_enabled_);
