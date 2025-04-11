@@ -714,10 +714,12 @@ void XiaoziyunliaoDisplay::SwitchPage(std::optional<PageIndex> target) {
 
 void XiaoziyunliaoDisplay::NewSmartConfigPage() {
     DisplayLockGuard lock(this);
+    DelConfigPage();
+    ShowChatPage();
     if (emotion_label_) {
         lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     }
-#if (not defined  ja_jp)
+#if (not defined ja_jp)
     if (content_) {
         smartconfig_qrcode_ = lv_qrcode_create(content_);
         lv_qrcode_set_size(smartconfig_qrcode_, 100);
@@ -745,7 +747,7 @@ void XiaoziyunliaoDisplay::SetLogo(const char* logo) {
     }
 }
 
-#if (defined  ja_jp)
+#if (defined ja_jp)
     LV_FONT_DECLARE(font_noto_14_1_ja_jp);
     #define FONT2 &font_noto_14_1_ja_jp
 #else
@@ -768,10 +770,10 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
 
     uint8_t left_width =  170;
     uint8_t right_width = 140;
-#if (defined  zh_tw)
+#if (defined zh_tw)
     left_width =  160;
     right_width = 140;
-#elif (defined  ja_jp)
+#elif (defined ja_jp)
     left_width =  140;
     right_width = 130;
 #elif (defined  en_us)

@@ -32,7 +32,7 @@
 #if (defined  zh_tw)
     LV_FONT_DECLARE(font_lxgw_20_4_zh_tw);
     #define FONT font_lxgw_20_4_zh_tw
-#elif (defined  ja_jp)
+#elif (defined ja_jp)
     LV_FONT_DECLARE(font_noto_20_4_ja_jp);
     #define FONT font_noto_20_4_ja_jp
 #else
@@ -273,16 +273,13 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
     });
     boot_button_.OnLongPress([this]() {
         auto& app = Application::GetInstance();
-        if (wifi_config_mode_ || app.GetDeviceState() == kDeviceStateActivating ||
-            app.GetDeviceState() == kDeviceStateIdle || display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            ESP_LOGI(TAG, "Button LongPress to Sleep");
-            display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
-            display_->HideChatPage();
-            display_->HideSmartConfigPage();
-            display_->DelConfigPage();
-            vTaskDelay(pdMS_TO_TICKS(2000));
-            Sleep();
-        }
+        ESP_LOGI(TAG, "Button LongPress to Sleep");
+        display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
+        display_->HideChatPage();
+        display_->HideSmartConfigPage();
+        display_->DelConfigPage();
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        Sleep();
     });    
     boot_button_.OnDoubleClick([this]() {
         // ESP_LOGI(TAG, "Button OnDoubleClick");
@@ -368,7 +365,7 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
     wifi_ap.Start();
     wifi_ap.StartSmartConfig();
 
-#if (defined  ja_jp)
+#if (defined ja_jp)
     std::string hint = "";
 #else
     std::string hint = Lang::Strings::SCAN_QR;
