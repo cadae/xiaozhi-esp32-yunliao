@@ -253,7 +253,7 @@ config USE_WAKE_WORD_DETECT
 choice YUNLIAO_C3_VERSION
     depends on BOARD_TYPE_YUNLIAO_C3
     prompt "YUNLIAO VERSION"
-    default BOARD_TYPE_YUNLIAO_V1
+    default BOARD_TYPE_YUNLIAO_V2
     help
         版本
     config BOARD_TYPE_YUNLIAO_V1
@@ -275,6 +275,13 @@ choice LCD_CONTROLLER
     config LCD_CONTROLLER_NC
         bool "NC"
 endchoice
+
+config USE_ALARM
+    depends on BOARD_TYPE_YUNLIAO_C3
+    bool "启用闹钟功能"
+    default n
+    help
+        一个自定义的闹钟功能
 
 config WIFI_FACTORY_SSID
     depends on BOARD_TYPE_YUNLIAO_C3

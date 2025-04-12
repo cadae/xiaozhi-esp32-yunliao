@@ -272,7 +272,6 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
         // ESP_LOGI(TAG, "Button OnPressUp");
     });
     boot_button_.OnLongPress([this]() {
-        auto& app = Application::GetInstance();
         ESP_LOGI(TAG, "Button LongPress to Sleep");
         display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
         display_->HideChatPage();
@@ -322,7 +321,9 @@ void XiaoZhiYunliaoC3::InitializeIot() {
     thing_manager.AddThing(iot::CreateThing("Speaker"));
     thing_manager.AddThing(iot::CreateThing("LCDScreen"));
     thing_manager.AddThing(iot::CreateThing("BoardControl"));
-
+#if CONFIG_USE_ALARM
+        thing_manager.AddThing(iot::CreateThing("AlarmIot"));
+#endif
 }
 
 void XiaoZhiYunliaoC3::InitializeBattTimers() {

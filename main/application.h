@@ -17,6 +17,9 @@
 #include "protocol.h"
 #include "ota.h"
 #include "background_task.h"
+#if CONFIG_USE_ALARM
+#include "boards/xiaozhiyunliao-c3/AlarmClock.h"
+#endif
 
 #if CONFIG_USE_WAKE_WORD_DETECT
 #include "wake_word_detect.h"
@@ -39,6 +42,9 @@ enum DeviceState {
     kDeviceStateSpeaking,
     kDeviceStateUpgrading,
     kDeviceStateActivating,
+#if CONFIG_USE_ALARM
+    kDeviceStateAlarm,
+#endif
     kDeviceStateFatalError
 };
 
@@ -71,6 +77,10 @@ public:
     void PlaySound(const std::string_view& sound);
     bool CanEnterSleepMode();
     Ota& getOta() { return ota_; }
+#if CONFIG_USE_ALARM
+    AlarmManager* alarm_m_ = nullptr;
+    std::list<std::vector<uint8_t>> audio_decode_queue_;
+#endif
 
 private:
     Application();
@@ -105,7 +115,10 @@ private:
     TaskHandle_t audio_loop_task_handle_ = nullptr;
     BackgroundTask* background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
+#if CONFIG_USE_ALARM
+#else
     std::list<std::vector<uint8_t>> audio_decode_queue_;
+#endif
 
     std::unique_ptr<OpusEncoderWrapper> opus_encoder_;
     std::unique_ptr<OpusDecoderWrapper> opus_decoder_;
