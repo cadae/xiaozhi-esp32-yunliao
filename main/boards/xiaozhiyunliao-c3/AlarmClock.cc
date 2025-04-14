@@ -56,7 +56,7 @@ AlarmManager::AlarmManager(){
             alarm.name = alarm_name;
             alarm.time = settings_.GetInt("alarm_time_" + std::to_string(i));
             alarms_.push_back(alarm);
-            ESP_LOGI(TAG, "Alarm %s add agein at %d", alarm.name.c_str(), alarm.time);
+            ESP_LOGI(TAG, "Alarm %s add again at %d", alarm.name.c_str(), alarm.time);
         }
     }
 
@@ -73,7 +73,7 @@ AlarmManager::AlarmManager(){
     esp_timer_create(&timer_args, &timer_);
     time_t now = time(NULL);
     // 获取最近的闹钟, 同时清除过期的闹钟
-    printf("now: %lld\n", now);
+    // printf("now: %lld\n", now);
 
     ClearOverdueAlarm(now);
 
@@ -168,7 +168,11 @@ std::string AlarmManager::GetAlarmsStatus(){
     std::lock_guard<std::mutex> lock(mutex_);
     std::string status;
     for(auto& alarm : alarms_){
-        status += alarm.name + " at " + std::to_string(alarm.time) + "\n";
+        status += alarm.name + " at " + std::to_string(alarm.time) + "|";
+    }
+    //去除最后一个字符
+    if(status.length() > 0){
+        status.pop_back();  
     }
     return status;
 }

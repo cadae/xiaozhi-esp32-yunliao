@@ -33,6 +33,7 @@ std::string Thing::GetDescriptorJson() {
     json_str += "\"properties\":" + properties_.GetDescriptorJson() + ",";
     json_str += "\"methods\":" + methods_.GetDescriptorJson();
     json_str += "}";
+    // ESP_LOGE(TAG, "GetDescriptorJson: %s", json_str.c_str());
     return json_str;
 }
 
@@ -41,6 +42,7 @@ std::string Thing::GetStateJson() {
     json_str += "\"name\":\"" + name_ + "\",";
     json_str += "\"state\":" + properties_.GetStateJson();
     json_str += "}";
+    // ESP_LOGE(TAG, "GetStateJson: %s", json_str.c_str());
     return json_str;
 }
 
