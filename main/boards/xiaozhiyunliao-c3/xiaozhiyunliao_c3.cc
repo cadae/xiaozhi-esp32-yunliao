@@ -29,10 +29,10 @@
 #endif
 
     LV_FONT_DECLARE(font_awesome_20_4);
-#if (defined  zh_tw)
+#if defined(zh_tw)
     LV_FONT_DECLARE(font_lxgw_20_4_zh_tw);
     #define FONT font_lxgw_20_4_zh_tw
-#elif (defined ja_jp)
+#elif defined(ja_jp)
     LV_FONT_DECLARE(font_noto_20_4_ja_jp);
     #define FONT font_noto_20_4_ja_jp
 #else
@@ -366,7 +366,7 @@ void XiaoZhiYunliaoC3::EnterWifiConfigMode() {
     wifi_ap.Start();
     wifi_ap.StartSmartConfig();
 
-#if (defined ja_jp)
+#if (defined ja_jp) || (defined en_us)
     std::string hint = "";
 #else
     std::string hint = Lang::Strings::SCAN_QR;
