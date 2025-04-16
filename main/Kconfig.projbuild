@@ -288,14 +288,14 @@ config USE_ALARM
         一个自定义的闹钟功能
 
 config WIFI_FACTORY_SSID
-    depends on BOARD_TYPE_YUNLIAO_C3
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_MOVECALL_CUICAN_ESP32S3
     string "WiFi Factory SSID"
     default ""
     help
         SSID (network name) 
 
 config WIFI_FACTORY_PASSWORD
-    depends on BOARD_TYPE_YUNLIAO_C3
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_MOVECALL_CUICAN_ESP32S3
     string "WiFi Factory Password"
     default ""
     help

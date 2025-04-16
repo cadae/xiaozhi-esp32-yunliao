@@ -11,6 +11,8 @@
 #include <esp_log.h>
 #include <esp_efuse_table.h>
 #include <driver/i2c_master.h>
+#include <esp_sleep.h>
+#include <driver/rtc_io.h>
 
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
@@ -18,6 +20,12 @@
 
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+
+#include <assets/lang_config.h>
+#include "power_save_timer.h"
+#include <string.h> 
+#include <ssid_manager.h>
+#include "settings.h"
 
 #define TAG "MovecallCuicanESP32S3"
 
@@ -29,6 +37,8 @@ private:
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;
     Display* display_;
+    esp_lcd_panel_handle_t panel_handle = NULL;
+    PowerSaveTimer* power_save_timer_;
 
     void InitializeCodecI2c() {
         // Initialize I2C peripheral
@@ -66,7 +76,7 @@ private:
         ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi(SPI3_HOST, &io_config, &io_handle));
     
         ESP_LOGI(TAG, "Install GC9A01 panel driver");
-        esp_lcd_panel_handle_t panel_handle = NULL;
+
         esp_lcd_panel_dev_config_t panel_config = {};
         panel_config.reset_gpio_num = DISPLAY_SPI_RESET_PIN;    // Set to -1 if not use
         panel_config.rgb_endian = LCD_RGB_ENDIAN_BGR;           //LCD_RGB_ENDIAN_RGB;
@@ -88,13 +98,76 @@ private:
                                     });
     }
 
+    void InitializePowerSaveTimer() {
+        power_save_timer_ = new PowerSaveTimer(-1, 120, 600);
+        power_save_timer_->OnEnterSleepMode([this]() {
+            ESP_LOGI(TAG, "Enabling sleep mode");
+            auto display = GetDisplay();
+            display->SetChatMessage("system", "");
+            display->SetEmotion("sleepy");
+            GetBacklight()->SetBrightness(10);
+            auto codec = GetAudioCodec();
+            codec->EnableInput(false);
+        });
+        power_save_timer_->OnExitSleepMode([this]() {
+            auto codec = GetAudioCodec();
+            codec->EnableInput(true);
+            
+            auto display = GetDisplay();
+            display->SetChatMessage("system", "");
+            display->SetEmotion("neutral");
+            GetBacklight()->RestoreBrightness();
+        });
+        power_save_timer_->OnShutdownRequest([this]() {
+            ESP_LOGI(TAG, "Shutting down");
+            Sleep();
+        });
+        power_save_timer_->SetEnabled(true);
+    }
     void InitializeButtons() {
         boot_button_.OnClick([this]() {
+            ESP_LOGI(TAG, "Button OnClick");
             auto& app = Application::GetInstance();
-            if (app.GetDeviceState() == kDeviceStateStarting && !WifiStation::GetInstance().IsConnected()) {
+            std::string wake_word=Lang::Strings::WAKE_WORD;
+            app.WakeWordInvoke(wake_word);
+        });
+        boot_button_.OnPressDown([this]() {
+            // ESP_LOGI(TAG, "Button OnPressDown");
+            // power_save_timer_->WakeUp();
+        });
+        boot_button_.OnLongPress([this]() {
+            ESP_LOGI(TAG, "Button LongPress to Sleep");
+            display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            Sleep();
+        });    
+        boot_button_.OnFourClick([this]() {
+            ESP_LOGI(TAG, "Button OnFourClick");
+
+#if defined(CONFIG_WIFI_FACTORY_SSID)
+            if (wifi_config_mode_) {
+                auto &ssid_manager = SsidManager::GetInstance();
+                auto ssid_list = ssid_manager.GetSsidList();
+                if (strlen(CONFIG_WIFI_FACTORY_SSID) > 0){
+                    ssid_manager.Clear();
+                    ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
+                    Settings settings("wifi", true);
+                    settings.SetInt("force_ap", 0);
+                    esp_restart();
+                }
+            }else{
+                auto &ssid_manager = SsidManager::GetInstance();
+                ssid_manager.Clear();
+                ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
                 ResetWifiConfiguration();
             }
-            app.ToggleChatState();
+#else
+            auto &ssid_manager = SsidManager::GetInstance();
+            ssid_manager.Clear();
+            ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
+            ResetWifiConfiguration();
+
+#endif
         });
     }
 
@@ -104,9 +177,28 @@ private:
         thing_manager.AddThing(iot::CreateThing("Speaker")); 
         thing_manager.AddThing(iot::CreateThing("Screen"));   
     }
-
+    void Sleep() {
+        ESP_LOGI(TAG, "Entering deep sleep");
+        Application::GetInstance().StopListening();
+        if (auto* codec = GetAudioCodec()) {
+            codec->EnableOutput(false);
+            codec->EnableInput(false);
+        }
+        GetBacklight()->SetBrightness(0);
+        if (panel_handle) {
+            esp_lcd_panel_disp_on_off(panel_handle, false);
+        }
+        MCUSleep();
+    }
+    void MCUSleep() {
+        printf("Enabling EXT0 wakeup on pin GPIO%d\n", BOOT_BUTTON_GPIO);
+        ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BOOT_BUTTON_GPIO, 0));
+        ESP_ERROR_CHECK(rtc_gpio_pulldown_dis(BOOT_BUTTON_GPIO));
+        ESP_ERROR_CHECK(rtc_gpio_pullup_en(BOOT_BUTTON_GPIO));
+        esp_deep_sleep_start();
+    }
 public:
-    MovecallCuicanESP32S3() : boot_button_(BOOT_BUTTON_GPIO) {  
+    MovecallCuicanESP32S3() : boot_button_(BOOT_BUTTON_GPIO, false, 800) {  
         InitializeCodecI2c();
         InitializeSpi();
         InitializeGc9a01Display();
