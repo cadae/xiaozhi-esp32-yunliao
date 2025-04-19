@@ -21,7 +21,7 @@
 #define DARK_ASSISTANT_BUBBLE_COLOR lv_color_hex(0x333333)     // Dark gray
 #define DARK_SYSTEM_BUBBLE_COLOR    lv_color_hex(0x2A2A2A)     // Medium gray
 #define DARK_SYSTEM_TEXT_COLOR      lv_color_hex(0xAAAAAA)     // Light gray text
-#define DARK_BORDER_COLOR           lv_color_hex(0x333333)     // Dark gray border
+#define DARK_BORDER_COLOR           lv_color_hex(0x1E1E1E)     // Dark gray border
 #define DARK_LOW_BATTERY_COLOR      lv_color_hex(0xFF0000)     // Red for dark mode
 
 // Color definitions for light theme

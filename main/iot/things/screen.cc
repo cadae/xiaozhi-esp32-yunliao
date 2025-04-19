@@ -26,16 +26,16 @@ public:
             return backlight ? backlight->brightness() : 100;
         });
 
-        // 定义设备可以被远程执行的指令
-        methods_.AddMethod("SetTheme", "设置屏幕主题", ParameterList({
-            Parameter("theme_name", "主题模式, light 或 dark", kValueTypeString, true)
-        }), [this](const ParameterList& parameters) {
-            std::string theme_name = static_cast<std::string>(parameters["theme_name"].string());
-            auto display = Board::GetInstance().GetDisplay();
-            if (display) {
-                display->SetTheme(theme_name);
-            }
-        });
+        // // 定义设备可以被远程执行的指令
+        // methods_.AddMethod("SetTheme", "设置屏幕主题", ParameterList({
+        //     Parameter("theme_name", "主题模式, light 或 dark", kValueTypeString, true)
+        // }), [this](const ParameterList& parameters) {
+        //     std::string theme_name = static_cast<std::string>(parameters["theme_name"].string());
+        //     auto display = Board::GetInstance().GetDisplay();
+        //     if (display) {
+        //         display->SetTheme(theme_name);
+        //     }
+        // });
         
         methods_.AddMethod("SetBrightness", "设置亮度", ParameterList({
             Parameter("brightness", "0到100之间的整数", kValueTypeNumber, true)
