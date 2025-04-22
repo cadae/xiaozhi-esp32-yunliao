@@ -29,10 +29,10 @@ static const char* const STATE_STRINGS[] = {
     "speaking",
     "upgrading",
     "activating",
-    "fatal_error",
 #if CONFIG_USE_ALARM
     "alarm",
 #endif
+    "fatal_error",
     "invalid_state"
 };
 
@@ -1010,6 +1010,15 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
                 protocol_->CloseAudioChannel();
             }
         });
+#if CONFIG_USE_ALARM
+    } else if (device_state_ == kDeviceStateAlarm) {
+        ToggleChatState();
+        Schedule([this, wake_word]() {
+            if (protocol_) {
+                protocol_->SendWakeWordDetected(wake_word); 
+            }
+        }); 
+#endif
     }
 }
 

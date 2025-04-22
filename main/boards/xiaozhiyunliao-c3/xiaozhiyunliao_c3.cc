@@ -122,6 +122,12 @@ void XiaoZhiYunliaoC3::InitializePowerSaveTimer() {
     power_save_timer_->SetEnabled(true);
 }
 
+void XiaoZhiYunliaoC3::PowerSaveTimerSetEnabled(bool enabled) {
+    if(power_save_timer_){
+        power_save_timer_->SetEnabled(enabled);
+    }
+}
+
 Backlight* XiaoZhiYunliaoC3::GetBacklight() {
     static PwmBacklight backlight(DISPLAY_BACKLIGHT_PIN, DISPLAY_BACKLIGHT_OUTPUT_INVERT);
     return &backlight;
@@ -322,7 +328,7 @@ void XiaoZhiYunliaoC3::InitializeIot() {
     thing_manager.AddThing(iot::CreateThing("LCDScreen"));
     thing_manager.AddThing(iot::CreateThing("BoardControl"));
 #if CONFIG_USE_ALARM
-        thing_manager.AddThing(iot::CreateThing("AlarmIot"));
+    thing_manager.AddThing(iot::CreateThing("AlarmIot"));
 #endif
 }
 

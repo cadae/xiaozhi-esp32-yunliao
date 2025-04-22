@@ -9,6 +9,9 @@
 #include "assets/lang_config.h"
 #include "board.h"
 #include "display.h"
+#include "xiaozhiyunliao_c3.h"
+#include "application.h"
+
 #define TAG "AlarmManager"
 
 Alarm * AlarmManager::GetProximateAlarm(time_t now){
@@ -131,12 +134,15 @@ void AlarmManager::SetAlarm(int seconde_from_now, std::string alarm_name){
     seconde_from_now = alarm_first->time - now;
     ESP_LOGI(TAG, "begin a alarm at %d", seconde_from_now);
     esp_timer_start_once(timer_, seconde_from_now * 1000000); // 当前一定有时钟, 所以不需要清除标志
+
+    auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+    board->PowerSaveTimerSetEnabled(false);
 }
 
 void AlarmManager::OnAlarm(){
     ESP_LOGI(TAG, "=----ring----=");
     ring_flag = true;
-    auto display = Board::GetInstance().GetDisplay();
+    // auto display = Board::GetInstance().GetDisplay();
     // 遍历闹钟
     Alarm *alarm_first = nullptr;
     for(auto& alarm : alarms_){
@@ -145,8 +151,9 @@ void AlarmManager::OnAlarm(){
             break;
         }
     }
-
-    display->SetStatus(alarm_first->name.c_str());  // 显示闹钟名字
+    // display->SetStatus(alarm_first->name.c_str());  // 显示闹钟名字
+    auto& app = Application::GetInstance();
+    app.Alert(Lang::Strings::WARNING, alarm_first->name.c_str());
     // // 闹钟响了
     time_t now = time(NULL);
     // 处理一下相同时间的闹钟
@@ -160,6 +167,9 @@ void AlarmManager::OnAlarm(){
     }else{
         running_flag = false; // 没有闹钟了
         ESP_LOGI(TAG, "no alarm now");
+        auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+        board->PowerSaveTimerSetEnabled(true);
+        app.SetDeviceState(kDeviceStateIdle);
     }
 
 }

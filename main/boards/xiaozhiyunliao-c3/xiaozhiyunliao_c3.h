@@ -56,6 +56,7 @@ public:
     void SetPressToTalkEnabled(bool enabled);
     std::string GetHardwareVersion() const;
     void MCUSleep();
+    void PowerSaveTimerSetEnabled(bool enabled);
 };
 
 #endif // XIAOZHIYUNLIAO_C3_H 
