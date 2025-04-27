@@ -93,7 +93,7 @@ void MogaiCuicanESP32S3::InitializeGc9a01Display() {
 }
 
 void MogaiCuicanESP32S3::InitializePowerSaveTimer() {
-    power_save_timer_ = new PowerSaveTimer(-1, 60, 120);
+    power_save_timer_ = new PowerSaveTimer(-1, 60, 180);
     power_save_timer_->OnEnterSleepMode([this]() {
         ESP_LOGI(TAG, "Enabling sleep mode");
         auto display = GetDisplay();
