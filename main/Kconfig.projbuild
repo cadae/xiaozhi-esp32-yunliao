@@ -150,6 +150,8 @@ choice BOARD_TYPE
         bool "Mogai CuiCan 魔改璀璨·AI吊坠"
     config BOARD_TYPE_YUNLIAO_C3
         bool "小智云聊C3"
+    config BOARD_TYPE_YUNLIAO_S3
+        bool "小智云聊S3"
 endchoice
 
 choice DISPLAY_OLED_TYPE
@@ -238,53 +240,6 @@ config USE_WAKE_WORD_DETECT
     help
         需要 ESP32 S3 与 AFE 支持
 
-choice YUNLIAO_C3_VERSION
-    depends on BOARD_TYPE_YUNLIAO_C3
-    prompt "YUNLIAO VERSION"
-    default BOARD_TYPE_YUNLIAO_V2
-    help
-        版本
-    config BOARD_TYPE_YUNLIAO_V1
-        bool "V1"
-    config BOARD_TYPE_YUNLIAO_V2
-        bool "V2"
-endchoice
-
-choice LCD_CONTROLLER
-    depends on BOARD_TYPE_YUNLIAO_C3
-    prompt "LCD controller model"
-    default LCD_CONTROLLER_ST7789
-    help
-        液晶型号
-    config LCD_CONTROLLER_ILI9341
-        bool "ILI9341"
-    config LCD_CONTROLLER_ST7789
-        bool "ST7789"
-    config LCD_CONTROLLER_NC
-        bool "NC"
-endchoice
-
-config USE_ALARM
-    depends on BOARD_TYPE_YUNLIAO_C3
-    bool "启用闹钟功能"
-    default n
-    help
-        一个自定义的闹钟功能
-
-config WIFI_FACTORY_SSID
-    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
-    string "WiFi Factory SSID"
-    default ""
-    help
-        SSID (network name) 
-
-config WIFI_FACTORY_PASSWORD
-    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
-    string "WiFi Factory Password"
-    default ""
-    help
-        WiFi password (WPA or WPA2)
-
 config USE_AUDIO_PROCESSOR
     bool "启用音频降噪、增益处理"
     default y
@@ -298,5 +253,52 @@ config USE_REALTIME_CHAT
     depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3)
     help
         需要 ESP32 S3 与 AEC 开启，因为性能不够，不建议和微信聊天界面风格同时开启
+        
+choice YUNLIAO_C3_VERSION
+    depends on BOARD_TYPE_YUNLIAO_C3
+    prompt "YUNLIAO VERSION"
+    default BOARD_TYPE_YUNLIAO_V2
+    help
+        版本
+    config BOARD_TYPE_YUNLIAO_V1
+        bool "V1"
+    config BOARD_TYPE_YUNLIAO_V2
+        bool "V2"
+endchoice
+
+choice LCD_CONTROLLER
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    prompt "LCD controller model"
+    default LCD_CONTROLLER_ST7789
+    help
+        液晶型号
+    config LCD_CONTROLLER_ILI9341
+        bool "ILI9341"
+    config LCD_CONTROLLER_ST7789
+        bool "ST7789"
+    config LCD_CONTROLLER_NC
+        bool "NC"
+endchoice
+
+config USE_ALARM
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用闹钟功能"
+    default n
+    help
+        一个自定义的闹钟功能
+
+config WIFI_FACTORY_SSID
+    depends on BOARD_TYPE_YUNLIAO_C3  || BOARD_TYPE_YUNLIAO_S3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
+    string "WiFi Factory SSID"
+    default ""
+    help
+        SSID (network name) 
+
+config WIFI_FACTORY_PASSWORD
+    depends on BOARD_TYPE_YUNLIAO_C3  || BOARD_TYPE_YUNLIAO_S3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
+    string "WiFi Factory Password"
+    default ""
+    help
+        WiFi password (WPA or WPA2)
         
 endmenu

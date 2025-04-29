@@ -153,6 +153,8 @@ elseif(CONFIG_BOARD_TYPE_MOGAI_CUICAN_ESP32S3)
     set(BOARD_TYPE "mogai-cuican-esp32s3")
 elseif(CONFIG_BOARD_TYPE_YUNLIAO_C3)
     set(BOARD_TYPE "xiaozhiyunliao-c3")
+elseif(CONFIG_BOARD_TYPE_YUNLIAO_S3)
+    set(BOARD_TYPE "xiaozhiyunliao-s3")
 endif()
 file(GLOB BOARD_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/boards/${BOARD_TYPE}/*.cc
