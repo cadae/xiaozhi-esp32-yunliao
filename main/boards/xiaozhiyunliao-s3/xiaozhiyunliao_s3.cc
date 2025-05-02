@@ -97,7 +97,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 }
 
 void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
-    power_save_timer_ = new PowerSaveTimer(-1, 120, 600);
+    power_save_timer_ = new PowerSaveTimer(-1, 180, 600);
     power_save_timer_->OnEnterSleepMode([this]() {
         ESP_LOGI(TAG, "Enabling sleep mode");
         auto display = GetDisplay();
@@ -352,7 +352,9 @@ AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
         AUDIO_I2S_GPIO_DOUT, 
         AUDIO_I2S_GPIO_DIN,
         AUDIO_CODEC_PA_PIN, 
-        AUDIO_CODEC_ES8388_ADDR);
+        AUDIO_CODEC_ES8388_ADDR, 
+        AUDIO_INPUT_REFERENCE,
+        35.95f);
     return &audio_codec;
 }
 

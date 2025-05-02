@@ -9,9 +9,10 @@
 
 class Es8388AudioCodec : public AudioCodec {
 private:
+    float input_gain_;
     const audio_codec_data_if_t* data_if_ = nullptr;
-    const audio_codec_ctrl_if_t* ctrl_if_ = nullptr;
-    const audio_codec_if_t* codec_if_ = nullptr;
+    const audio_codec_ctrl_if_t* out_ctrl_if_ = nullptr;
+    const audio_codec_if_t* out_codec_if_ = nullptr;
     const audio_codec_gpio_if_t* gpio_if_ = nullptr;
 
     esp_codec_dev_handle_t output_dev_ = nullptr;
@@ -26,7 +27,7 @@ private:
 public:
     Es8388AudioCodec(void* i2c_master_handle, i2c_port_t i2c_port, int input_sample_rate, int output_sample_rate,
         gpio_num_t mclk, gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout, gpio_num_t din,
-        gpio_num_t pa_pin, uint8_t es8388_addr);
+        gpio_num_t pa_pin, uint8_t es8388_addr, bool input_reference = false, float input_gain = 2.4f);
     virtual ~Es8388AudioCodec();
 
     virtual void SetOutputVolume(int volume) override;

@@ -80,8 +80,6 @@ choice BOARD_TYPE
         bool "AtomS3R + Echo Base"
     config BOARD_TYPE_ATOMS3R_CAM_M12_ECHO_BASE
         bool "AtomS3R CAM/M12 + Echo Base"
-    config BOARD_TYPE_ATOMS3R_CAM_M12_ECHO_BASE
-        bool "AtomS3R CAM/M12 + Echo Base"
     config BOARD_TYPE_ATOMMATRIX_ECHO_BASE
         bool "AtomMatrix + Echo Base"
     config BOARD_TYPE_XMINI_C3
@@ -100,8 +98,6 @@ choice BOARD_TYPE
         bool "Waveshare ESP32-S3-Touch-LCD-1.85"
     config BOARD_TYPE_ESP32S3_Touch_LCD_1_46
         bool "Waveshare ESP32-S3-Touch-LCD-1.46"
-    config BOARD_TYPE_ESP32S3_Touch_LCD_3_5
-        bool "Waveshare ESP32-S3-Touch-LCD-3.5"
     config BOARD_TYPE_ESP32S3_Touch_LCD_3_5
         bool "Waveshare ESP32-S3-Touch-LCD-3.5"
     config BOARD_TYPE_TUDOUZI
@@ -233,13 +229,6 @@ config USE_WAKE_WORD_DETECT
     help
         需要 ESP32 S3 与 AFE 支持
 
-config USE_WAKE_WORD_DETECT
-    bool "启用唤醒词检测"
-    default y
-    depends on IDF_TARGET_ESP32S3 && SPIRAM
-    help
-        需要 ESP32 S3 与 AFE 支持
-
 config USE_AUDIO_PROCESSOR
     bool "启用音频降噪、增益处理"
     default y
@@ -250,7 +239,7 @@ config USE_AUDIO_PROCESSOR
 config USE_REALTIME_CHAT
     bool "启用可语音打断的实时对话模式（需要 AEC 支持）"
     default n
-    depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3)
+    depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3 || BOARD_TYPE_YUNLIAO_S3)
     help
         需要 ESP32 S3 与 AEC 开启，因为性能不够，不建议和微信聊天界面风格同时开启
         
@@ -288,14 +277,12 @@ config USE_ALARM
         一个自定义的闹钟功能
 
 config WIFI_FACTORY_SSID
-    depends on BOARD_TYPE_YUNLIAO_C3  || BOARD_TYPE_YUNLIAO_S3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
     string "WiFi Factory SSID"
     default ""
     help
         SSID (network name) 
 
 config WIFI_FACTORY_PASSWORD
-    depends on BOARD_TYPE_YUNLIAO_C3  || BOARD_TYPE_YUNLIAO_S3 || BOARD_TYPE_MOGAI_CUICAN_ESP32S3
     string "WiFi Factory Password"
     default ""
     help
