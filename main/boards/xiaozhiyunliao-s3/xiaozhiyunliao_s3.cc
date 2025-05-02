@@ -76,7 +76,7 @@ static void calBattLife(TimerHandle_t xTimer) {
 }
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
-    : WifiBoard(),
+    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) {  
 
     Start5V();
@@ -293,9 +293,12 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             display_->SwitchPage();
         }
     });  
-    // boot_button_.OnThreeClick([this]() {
-    //     ESP_LOGI(TAG, "Button OnThreeClick");
-    // });  
+    boot_button_.OnThreeClick([this]() {
+        ESP_LOGI(TAG, "Button OnThreeClick");
+        SwitchNetType();
+        auto& app = Application::GetInstance();
+        app.Reboot();
+    });  
     boot_button_.OnFourClick([this]() {
         // ESP_LOGI(TAG, "Button OnFourClick");
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {

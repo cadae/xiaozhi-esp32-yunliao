@@ -1,7 +1,7 @@
 #ifndef XIAOZHIYUNLIAO_S3_H
 #define XIAOZHIYUNLIAO_S3_H
 
-#include "wifi_board.h"
+#include "dual_network_board.h"
 #include "audio_codecs/es8311_audio_codec.h"
 #include "button.h"
 #include "iot/thing_manager.h"
@@ -17,7 +17,7 @@
 
 class XiaoziyunliaoDisplay;
 
-class XiaoZhiYunliaoS3 : public WifiBoard {
+class XiaoZhiYunliaoS3 : public DualNetworkBoard {
 private:
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;

@@ -8,7 +8,6 @@ class Ml307Board : public Board {
 protected:
     Ml307AtModem modem_;
 
-    virtual std::string GetBoardJson() override;
     void WaitForNetworkReady();
 
 public:
@@ -21,6 +20,9 @@ public:
     virtual Udp* CreateUdp() override;
     virtual const char* GetNetworkStateIcon() override;
     virtual void SetPowerSaveMode(bool enabled) override;
+    virtual std::string GetBoardJson() override;
+    virtual AudioCodec* GetAudioCodec() override { return nullptr; }
+    bool CheckReady();
 };
 
 #endif // ML307_BOARD_H

@@ -119,3 +119,7 @@ std::string Ml307Board::GetBoardJson() {
 void Ml307Board::SetPowerSaveMode(bool enabled) {
     // TODO: Implement power save mode for ML307
 }
+
+bool Ml307Board::CheckReady() {
+    return modem_.CheckBaudRate();
+}

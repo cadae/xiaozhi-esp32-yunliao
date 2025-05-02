@@ -3,11 +3,11 @@
 
 #include <driver/gpio.h>
 
-#define AUDIO_INPUT_REFERENCE    true
+#define AUDIO_INPUT_REFERENCE       true
 
-#define AUDIO_INPUT_SAMPLE_RATE  24000
-#define AUDIO_OUTPUT_SAMPLE_RATE 24000
-#define AUDIO_DEFAULT_OUTPUT_VOLUME 80
+#define AUDIO_INPUT_SAMPLE_RATE     24000
+#define AUDIO_OUTPUT_SAMPLE_RATE    24000
+#define AUDIO_DEFAULT_OUTPUT_VOLUME 70
 
 #define AUDIO_I2S_GPIO_MCLK GPIO_NUM_14
 #define AUDIO_I2S_GPIO_BCLK GPIO_NUM_13
@@ -25,6 +25,9 @@
 #define PIN_BATT_MON            GPIO_NUM_43    	//检测PMU电池指示
 #define PIN_USB_MON				GPIO_NUM_47    	//检测USB插入
 #define PIN_5V_MON				GPIO_NUM_48    	//检测升压输出
+
+#define ML307_RX_PIN            GPIO_NUM_16
+#define ML307_TX_PIN            GPIO_NUM_15
 
 
 #define DISPLAY_SPI_LCD_HOST    SPI2_HOST
