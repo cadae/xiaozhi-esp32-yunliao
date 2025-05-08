@@ -90,8 +90,12 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     //电量计算定时任务
     InitializeBattMon();
     InitializeBattTimers();
-    GetAudioCodec()->SetOutputVolume(70);
-    GetBacklight()->SetBrightness(60);
+    if(GetAudioCodec()->output_volume() == 0){
+        GetAudioCodec()->SetOutputVolume(70);
+    }
+    if(GetBacklight()->brightness() == 0){
+        GetBacklight()->SetBrightness(60);
+    }
     ESP_LOGI(TAG, "Inited");
 }
 

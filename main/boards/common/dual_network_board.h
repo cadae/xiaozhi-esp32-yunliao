@@ -17,7 +17,7 @@ class DualNetworkBoard : public Board {
 private:
     // 使用基类指针存储当前活动的板卡
     std::unique_ptr<Board> current_board_;
-    NetworkType network_type_ = NetworkType::ML307;  // Default to ML307
+    NetworkType network_type_ = NetworkType::WIFI;  // Default to WiFi
 
     // ML307的引脚配置
     gpio_num_t ml307_tx_pin_;
@@ -56,6 +56,10 @@ public:
     virtual const char* GetNetworkStateIcon() override;
     virtual void SetPowerSaveMode(bool enabled) override;
     virtual std::string GetBoardJson() override;
+    void ResetWifiConfiguration();
+    void ClearWifiConfiguration();
+    void SetFactoryWifiConfiguration();
+    bool GetWifiConfigMode();
     
 };
 

@@ -106,6 +106,13 @@ void Button::OnDoubleClick(std::function<void()> callback) {
     }, this);
 }
 
+int Button::getButtonLevel() const {
+    if (gpio_num_ == GPIO_NUM_NC) {
+        return -1;
+    }
+    return gpio_get_level(gpio_num_);
+}
+
 void Button::OnMultipleClick(std::function<void()> callback, uint8_t click_count) {
     if (button_handle_ == nullptr) {
         return;
@@ -122,4 +129,12 @@ void Button::OnMultipleClick(std::function<void()> callback, uint8_t click_count
             button->on_multiple_click_();
         }
     }, this);
+}
+
+void Button::OnThreeClick(std::function<void()> callback) {
+    OnMultipleClick(callback, 3);
+}
+
+void Button::OnFourClick(std::function<void()> callback) {
+    OnMultipleClick(callback, 4);
 }

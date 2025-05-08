@@ -65,7 +65,12 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     InitializeSpi();
     InitializeLCDDisplay();
 #endif
-    GetBacklight()->SetBrightness(60);
+    if(GetAudioCodec()->output_volume() == 0){
+        GetAudioCodec()->SetOutputVolume(70);
+    }
+    if(GetBacklight()->brightness() == 0){
+        GetBacklight()->SetBrightness(60);
+    }
     ESP_LOGI(TAG, "Inited");
 }
 
@@ -236,7 +241,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
-        SwitchNetType();
+        SwitchNetworkType();
         auto& app = Application::GetInstance();
         app.Reboot();
     });  

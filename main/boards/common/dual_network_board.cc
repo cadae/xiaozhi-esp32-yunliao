@@ -4,6 +4,8 @@
 #include "assets/lang_config.h"
 #include "settings.h"
 #include <esp_log.h>
+#include <ssid_manager.h>
+#include <string.h> 
 
 static const char *TAG = "DualNetworkBoard";
 
@@ -22,7 +24,7 @@ DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_
 
 NetworkType DualNetworkBoard::LoadNetworkTypeFromSettings() {
     Settings settings("network", true);
-    int network_type = settings.GetInt("type", 1); // 默认使用ML307 (1)
+    int network_type = settings.GetInt("type", 0); // 默认使用WiFi (0)
     return network_type == 1 ? NetworkType::ML307 : NetworkType::WIFI;
 }
 
@@ -33,11 +35,20 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
 }
 
 void DualNetworkBoard::InitializeCurrentBoard() {
+    bool ml307_ok = false;
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
-    } else {
+        if(static_cast<Ml307Board*>(current_board_.get())->CheckReady()){
+            ml307_ok = true;
+        }else{
+            ESP_LOGI(TAG, "Initialize ML307 board failed, switch to WIFI mode");
+            current_board_ = nullptr;
+        }
+    }
+    if (!ml307_ok || network_type_ == NetworkType::WIFI) {
         ESP_LOGI(TAG, "Initialize WiFi board");
+        network_type_ = NetworkType::WIFI;
         current_board_ = std::make_unique<WifiBoard>();
     }
 }
@@ -98,4 +109,40 @@ void DualNetworkBoard::SetPowerSaveMode(bool enabled) {
 
 std::string DualNetworkBoard::GetBoardJson() {   
     return current_board_->GetBoardJson();
-} 
+}
+
+bool DualNetworkBoard::GetWifiConfigMode() {
+    if (network_type_ == NetworkType::WIFI) {
+        return static_cast<WifiBoard*>(current_board_.get())->wifi_config_mode_;
+    }
+    return false;
+}
+
+void DualNetworkBoard::ResetWifiConfiguration() {
+    if (network_type_ == NetworkType::WIFI) {
+        static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
+    }
+}
+void DualNetworkBoard::ClearWifiConfiguration() {
+    if (network_type_ == NetworkType::WIFI) {
+            auto &ssid_manager = SsidManager::GetInstance();
+            ssid_manager.Clear();
+            ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
+            static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
+            return;
+    }
+}
+
+void DualNetworkBoard::SetFactoryWifiConfiguration() {
+#if defined(CONFIG_WIFI_FACTORY_SSID)
+        auto &ssid_manager = SsidManager::GetInstance();
+        auto ssid_list = ssid_manager.GetSsidList();
+        if (strlen(CONFIG_WIFI_FACTORY_SSID) > 0){
+            ssid_manager.Clear();
+            ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
+            Settings settings("wifi", true);
+            settings.SetInt("force_ap", 0);
+            esp_restart();
+        }
+#endif
+}
