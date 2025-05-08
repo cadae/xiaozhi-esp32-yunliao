@@ -3,14 +3,15 @@
 
 #include <driver/gpio.h>
 #include <iot_button.h>
+#include <button_types.h>
+#include <button_adc.h>
+#include <button_gpio.h>
 #include <functional>
 
 class Button {
 public:
-#if CONFIG_SOC_ADC_SUPPORTED
-    Button(const button_adc_config_t& cfg);
-#endif
-    Button(gpio_num_t gpio_num, bool active_high = false, uint16_t short_press_time_ = 50);
+    Button(button_handle_t button_handle);
+    Button(gpio_num_t gpio_num, bool active_high = false, uint16_t long_press_time = 0, uint16_t short_press_time = 0);
     ~Button();
 
     void OnPressDown(std::function<void()> callback);
@@ -21,10 +22,11 @@ public:
     void OnThreeClick(std::function<void()> callback);
     void OnFourClick(std::function<void()> callback);
     int getButtonLevel() const;
-private:
+    void OnMultipleClick(std::function<void()> callback, uint8_t click_count = 3);
+
+protected:
     gpio_num_t gpio_num_;
     button_handle_t button_handle_ = nullptr;
-
 
     std::function<void()> on_press_down_;
     std::function<void()> on_press_up_;
@@ -33,6 +35,14 @@ private:
     std::function<void()> on_double_click_;
     std::function<void()> on_three_click_;
     std::function<void()> on_four_click_;
+    std::function<void()> on_multiple_click_;
 };
+
+#if CONFIG_SOC_ADC_SUPPORTED
+class AdcButton : public Button {
+public:
+    AdcButton(const button_adc_config_t& adc_config);
+};
+#endif
 
 #endif // BUTTON_H_
