@@ -818,11 +818,7 @@ void XiaoziyunliaoDisplay::NewConfigPage() {
 
     qrcode_label_ = lv_label_create(right_container);
     std::string qrcode_text = Lang::Strings::LOGO;
-#if CONFIG_BOARD_TYPE_YUNLIAO_V1
-    qrcode_text += Lang::Strings::VERSION1;
-#else
-    qrcode_text += Lang::Strings::VERSION2;
-#endif
+    qrcode_text += Lang::Strings::VERSION3;
     qrcode_text += "\n";
     qrcode_text += Lang::Strings::HELP3;
     lv_label_set_text(qrcode_label_, qrcode_text.c_str());

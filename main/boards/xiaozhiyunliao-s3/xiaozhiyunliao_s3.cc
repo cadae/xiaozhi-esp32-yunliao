@@ -13,8 +13,6 @@
 // #include "i2c_device.h"
 #include "iot/thing_manager.h"
 #include <driver/i2c_master.h>
-#include <esp_sleep.h>
-#include <driver/rtc_io.h>
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
@@ -42,56 +40,31 @@
 #endif
 
 esp_lcd_panel_handle_t panel = nullptr;
-static QueueHandle_t gpio_evt_queue = NULL;
-uint16_t battCnt;//闪灯次数
-uint16_t battLife = 0; //电量
-
-// 中断服务程序
-static void IRAM_ATTR batt_mon_isr_handler(void* arg) {
-    uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
-}
-
-// 添加任务处理函数
-static void batt_mon_task(void* arg) {
-    uint32_t io_num;
-    while(1) {
-        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-            battCnt++;
-        }
-    }
-}
-
-static void calBattLife(TimerHandle_t xTimer) {
-    // 计算电量
-    battLife = battCnt;
-
-    if (battLife > 100){
-        battLife = 100;
-    }
-    // ESP_LOGI(TAG, "Battery num %d\n", (int)battCnt);
-    // ESP_LOGI(TAG, "Battery  life %d\n", (int)battLife);
-    // 重置计数器
-    battCnt = 0;
-}
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
-      boot_button_(BOOT_BUTTON_GPIO, false, KEY_EXPIRE_MS) {  
-
-    Start5V();
+      boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
+      power_manager_(new PowerManager()) {  
+    power_manager_->Start5V();
+    power_manager_->Initialize();
     InitializeI2c();
     InitializeButtons();
     InitializePowerSaveTimer();
+    power_manager_->OnChargingStatusDisChanged([this](bool is_discharging) {
+        if(power_save_timer_){
+            if (is_discharging) {
+                power_save_timer_->SetEnabled(true);
+            } else {
+                power_save_timer_->SetEnabled(false);
+            }
+        }
+    });
+
     InitializeIot();
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
     InitializeLCDDisplay();
 #endif
-    //电量计算定时任务
-    InitializeBattMon();
-    InitializeBattTimers();
-    GetAudioCodec()->SetOutputVolume(70);
     GetBacklight()->SetBrightness(60);
     ESP_LOGI(TAG, "Inited");
 }
@@ -135,25 +108,6 @@ Backlight* XiaoZhiYunliaoS3::GetBacklight() {
 }
 
 
-void XiaoZhiYunliaoS3::InitializeBattMon() {
-    // 电池电量监测引脚配置
-    gpio_config_t io_conf_batt_mon = {
-        .pin_bit_mask = 1ull<<PIN_BATT_MON,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_POSEDGE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&io_conf_batt_mon));
-    // 创建电量GPIO事件队列
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-    // 安装电量GPIO ISR服务
-    ESP_ERROR_CHECK(gpio_install_isr_service(0));
-    // 添加中断处理
-    ESP_ERROR_CHECK(gpio_isr_handler_add(PIN_BATT_MON, batt_mon_isr_handler, (void*)PIN_BATT_MON));
-     // 创建监控任务
-    xTaskCreate(&batt_mon_task, "batt_mon_task", 2048, NULL, 10, NULL);
-}
 
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
 Display* XiaoZhiYunliaoS3::GetDisplay() {
@@ -233,12 +187,7 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
         display_->SetChatMessage("system", helpMessage.c_str());
 }
 #endif    
-void XiaoZhiYunliaoS3::Start5V(){
-    gpio_set_level(BOOT_5V_GPIO, 1);
-}
-void XiaoZhiYunliaoS3::Shutdown5V(){
-    gpio_set_level(BOOT_5V_GPIO, 0);
-}
+
 
 void XiaoZhiYunliaoS3::InitializeI2c() {
     i2c_master_bus_config_t i2c_bus_cfg = {
@@ -254,14 +203,6 @@ void XiaoZhiYunliaoS3::InitializeI2c() {
         },
     };
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_cfg, &codec_i2c_bus_));
-    gpio_config_t io_conf_5v = {
-        .pin_bit_mask = 1<<BOOT_5V_GPIO,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&io_conf_5v));
 }
 
 void XiaoZhiYunliaoS3::InitializeButtons() {
@@ -289,7 +230,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });    
     boot_button_.OnDoubleClick([this]() {
         // ESP_LOGI(TAG, "Button OnDoubleClick");
-        if (display_ && !wifi_config_mode_) {
+        if (display_) {
             display_->SwitchPage();
         }
     });  
@@ -300,27 +241,14 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         app.Reboot();
     });  
     boot_button_.OnFourClick([this]() {
-        // ESP_LOGI(TAG, "Button OnFourClick");
+        ESP_LOGI(TAG, "Button OnFourClick");
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            auto &ssid_manager = SsidManager::GetInstance();
-            ssid_manager.Clear();
-            ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
-            ResetWifiConfiguration();
-            return;
+            ClearWifiConfiguration();
         }
-#if defined(CONFIG_WIFI_FACTORY_SSID)
-        if (wifi_config_mode_) {
-            auto &ssid_manager = SsidManager::GetInstance();
-            auto ssid_list = ssid_manager.GetSsidList();
-            if (strlen(CONFIG_WIFI_FACTORY_SSID) > 0){
-                ssid_manager.Clear();
-                ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
-                Settings settings("wifi", true);
-                settings.SetInt("force_ap", 0);
-                esp_restart();
-            }
+        ESP_LOGI(TAG, "GetWifiConfigMode: %d", GetWifiConfigMode());
+        if (GetWifiConfigMode()) {
+            SetFactoryWifiConfiguration();
         }
-#endif
     });
 }
 
@@ -336,12 +264,6 @@ void XiaoZhiYunliaoS3::InitializeIot() {
 #endif
 }
 
-void XiaoZhiYunliaoS3::InitializeBattTimers() {
-    batt_ticker_ = xTimerCreate("BattTicker", pdMS_TO_TICKS(62500), pdTRUE, (void*)0, calBattLife);
-    if (batt_ticker_ != NULL) {
-        xTimerStart(batt_ticker_, 0);
-    }
-}
 
 AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
     static Es8388AudioCodec audio_codec(
@@ -362,45 +284,45 @@ AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
 }
 
 bool XiaoZhiYunliaoS3::GetBatteryLevel(int &level, bool& charging, bool& discharging) {
-    level = battLife;
-    charging = false;
-    discharging = false;
+    level = power_manager_->GetBatteryLevel();
+    charging = power_manager_->IsCharging();
+    discharging = power_manager_->IsDischarging();
     return true;
 }
 
-void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
-    auto& application = Application::GetInstance();
-    application.SetDeviceState(kDeviceStateWifiConfiguring);
+// void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
+//     auto& application = Application::GetInstance();
+//     application.SetDeviceState(kDeviceStateWifiConfiguring);
 
-    auto& wifi_ap = WifiConfigurationAp::GetInstance();
-    wifi_ap.SetLanguage(Lang::CODE);
-    wifi_ap.SetSsidPrefix("Xiaozhi");
-    wifi_ap.Start();
-    wifi_ap.StartSmartConfig();
+//     auto& wifi_ap = WifiConfigurationAp::GetInstance();
+//     wifi_ap.SetLanguage(Lang::CODE);
+//     wifi_ap.SetSsidPrefix("Xiaozhi");
+//     wifi_ap.Start();
+//     wifi_ap.StartSmartConfig();
 
-#if (defined ja_jp) || (defined en_us)
-    std::string hint = "";
-#else
-    std::string hint = Lang::Strings::SCAN_QR;
-#endif
-    hint += Lang::Strings::CONNECT_TO_HOTSPOT;
-    hint += wifi_ap.GetSsid();
-    hint += Lang::Strings::ACCESS_VIA_BROWSER;
-    hint += wifi_ap.GetWebServerUrl();
-    hint += Lang::Strings::HINT_SHUTDOWN;
+// #if (defined ja_jp) || (defined en_us)
+//     std::string hint = "";
+// #else
+//     std::string hint = Lang::Strings::SCAN_QR;
+// #endif
+//     hint += Lang::Strings::CONNECT_TO_HOTSPOT;
+//     hint += wifi_ap.GetSsid();
+//     hint += Lang::Strings::ACCESS_VIA_BROWSER;
+//     hint += wifi_ap.GetWebServerUrl();
+//     hint += Lang::Strings::HINT_SHUTDOWN;
     
-    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
+//     application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
 
-    auto display = Board::GetInstance().GetDisplay();
-    static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();
+//     auto display = Board::GetInstance().GetDisplay();
+//     static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();
     
-    while (true) {
-        int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-        int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
-        ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
-        vTaskDelay(pdMS_TO_TICKS(10000));
-    }
-}
+//     while (true) {
+//         int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+//         int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+//         ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
+//         vTaskDelay(pdMS_TO_TICKS(10000));
+//     }
+// }
 
 void XiaoZhiYunliaoS3::Sleep() {
     ESP_LOGI(TAG, "Entering deep sleep");
@@ -410,47 +332,19 @@ void XiaoZhiYunliaoS3::Sleep() {
         codec->EnableOutput(false);
         codec->EnableInput(false);
     }
-    ESP_ERROR_CHECK(gpio_isr_handler_remove(PIN_BATT_MON));
-    if(gpio_evt_queue) {
-        vQueueDelete(gpio_evt_queue);
-        gpio_evt_queue = NULL;
-    }
     GetBacklight()->SetBrightness(0);
-    Shutdown5V();
     if (panel) {
         esp_lcd_panel_disp_on_off(panel, false);
     }
-    MCUSleep();
+    power_manager_->Shutdown5V();
+    power_manager_->MCUSleep();
 }
 
-void XiaoZhiYunliaoS3::MCUSleep() {
-    printf("Enabling EXT0 wakeup on pin GPIO%d\n", BOOT_BUTTON_GPIO);
-    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BOOT_BUTTON_GPIO, 0));
-    ESP_ERROR_CHECK(rtc_gpio_pulldown_dis(BOOT_BUTTON_GPIO));
-    ESP_ERROR_CHECK(rtc_gpio_pullup_en(BOOT_BUTTON_GPIO));
-    esp_deep_sleep_start();
-}
-
-void XiaoZhiYunliaoS3::StopNetwork() {
-    if (wifi_config_mode_) {
-        auto& wifi_ap = WifiConfigurationAp::GetInstance();
-        wifi_ap.Stop();
-    } else {
-        auto& wifi_station = WifiStation::GetInstance();
-        wifi_station.Stop();
-    }
-    auto display = Board::GetInstance().GetDisplay();
-    display->ShowNotification(Lang::Strings::DISCONNECT);
-}
 
 
 std::string XiaoZhiYunliaoS3::GetHardwareVersion() const {
     std::string version = Lang::Strings::LOGO;
-#if CONFIG_BOARD_TYPE_YUNLIAO_V1
-    version += Lang::Strings::VERSION1;
-#else
-    version += Lang::Strings::VERSION2;
-#endif
+    version += Lang::Strings::VERSION3;
     return version;
 }
 

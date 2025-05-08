@@ -35,11 +35,6 @@ private:
     // 初始化当前网络类型对应的板卡
     void InitializeCurrentBoard();
 
-protected:
-    bool wifi_config_mode_ = false;
-
-    virtual void EnterWifiConfigMode();
- 
 public:
     DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, size_t ml307_rx_buffer_size = 4096);
     virtual ~DualNetworkBoard() override = default;
@@ -60,8 +55,11 @@ public:
     virtual const char* GetNetworkStateIcon() override;
     virtual void SetPowerSaveMode(bool enabled) override;
     virtual std::string GetBoardJson() override;
-    virtual void ResetWifiConfiguration();
-    
+    void ResetWifiConfiguration();
+    void ClearWifiConfiguration();
+    void SetFactoryWifiConfiguration();
+    bool GetWifiConfigMode();
+
 };
 
 #endif // DUAL_NETWORK_BOARD_H 

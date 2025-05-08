@@ -4,7 +4,8 @@
 #include "assets/lang_config.h"
 #include "settings.h"
 #include <esp_log.h>
-#include <ml307_at_modem.h>
+#include <ssid_manager.h>
+#include <string.h> 
 
 static const char *TAG = "DualNetworkBoard";
 
@@ -52,6 +53,7 @@ void DualNetworkBoard::InitializeCurrentBoard() {
     }
     if (!ml307_ok || network_type_ == NetworkType::WIFI) {
         ESP_LOGI(TAG, "初始化WiFi板卡");
+        network_type_ = NetworkType::WIFI;
         current_board_ = std::make_unique<WifiBoard>();
     }
 }
@@ -109,16 +111,38 @@ std::string DualNetworkBoard::GetBoardJson() {
     return current_board_->GetBoardJson();
 }
 
+bool DualNetworkBoard::GetWifiConfigMode() {
+    if (network_type_ == NetworkType::WIFI) {
+        return static_cast<WifiBoard*>(current_board_.get())->wifi_config_mode_;
+    }
+    return false;
+}
+
 void DualNetworkBoard::ResetWifiConfiguration() {
     if (network_type_ == NetworkType::WIFI) {
-        // 调用基类WifiBoard的配置逻辑
         static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
     }
 }
-
-void DualNetworkBoard::EnterWifiConfigMode() {
+void DualNetworkBoard::ClearWifiConfiguration() {
     if (network_type_ == NetworkType::WIFI) {
-        // 调用基类WifiBoard的配置逻辑
-        static_cast<WifiBoard*>(current_board_.get())->EnterWifiConfigMode();
+            auto &ssid_manager = SsidManager::GetInstance();
+            ssid_manager.Clear();
+            ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
+            static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
+            return;
     }
+}
+
+void DualNetworkBoard::SetFactoryWifiConfiguration() {
+#if defined(CONFIG_WIFI_FACTORY_SSID)
+        auto &ssid_manager = SsidManager::GetInstance();
+        auto ssid_list = ssid_manager.GetSsidList();
+        if (strlen(CONFIG_WIFI_FACTORY_SSID) > 0){
+            ssid_manager.Clear();
+            ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
+            Settings settings("wifi", true);
+            settings.SetInt("force_ap", 0);
+            esp_restart();
+        }
+#endif
 }

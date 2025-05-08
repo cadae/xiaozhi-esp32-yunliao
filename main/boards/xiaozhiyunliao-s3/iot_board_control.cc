@@ -88,14 +88,14 @@ public:
             return level;
         });
 
-        // properties_.AddBooleanProperty("Charging", "是否正在充电", [this]() -> bool {
-        //     int level = 0;
-        //     bool charging = false;
-        //     bool discharging = false;
-        //     Board::GetInstance().GetBatteryLevel(level, charging, discharging);
-        //     // ESP_LOGI(TAG, "当前电池电量: %d%%, 充电状态: %s", level, charging ? "充电中" : "未充电");
-        //     return charging;
-        // });
+        properties_.AddBooleanProperty("Charging", "是否正在充电", [this]() -> bool {
+            int level = 0;
+            bool charging = false;
+            bool discharging = false;
+            Board::GetInstance().GetBatteryLevel(level, charging, discharging);
+            // ESP_LOGI(TAG, "当前电池电量: %d%%, 充电状态: %s", level, charging ? "充电中" : "未充电");
+            return charging;
+        });
 
         properties_.AddStringProperty("HardwareVersion", "机器硬件版本", 
             [this]() -> std::string { 

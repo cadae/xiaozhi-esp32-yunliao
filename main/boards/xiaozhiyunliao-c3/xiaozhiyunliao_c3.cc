@@ -309,6 +309,7 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
             auto &ssid_manager = SsidManager::GetInstance();
             auto ssid_list = ssid_manager.GetSsidList();
             if (strlen(CONFIG_WIFI_FACTORY_SSID) > 0){
+                ESP_LOGI(TAG, "Factory SSID %s set", CONFIG_WIFI_FACTORY_SSID);
                 ssid_manager.Clear();
                 ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
                 Settings settings("wifi", true);

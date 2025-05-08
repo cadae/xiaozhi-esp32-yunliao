@@ -20,15 +20,15 @@
 #define AUDIO_CODEC_I2C_SDA_PIN  GPIO_NUM_18
 #define AUDIO_CODEC_ES8388_ADDR ES8388_CODEC_DEFAULT_ADDR
 
-#define BOOT_BUTTON_GPIO        GPIO_NUM_2
-#define BOOT_5V_GPIO            GPIO_NUM_3
-#define PIN_BATT_MON            GPIO_NUM_43    	//检测PMU电池指示
-#define PIN_USB_MON				GPIO_NUM_47    	//检测USB插入
-#define PIN_5V_MON				GPIO_NUM_48    	//检测升压输出
+#define BOOT_BUTTON_PIN         GPIO_NUM_2
+#define BOOT_5V_PIN             GPIO_NUM_3      //5V升压输出
+#define MON_BATT_PIN            GPIO_NUM_43    	//检测PMU电池指示
+#define MON_BATT_CNT            65    	        //检测PMU电池时间
+#define MON_USB_PIN				GPIO_NUM_47    	//检测USB插入
+// #define MON_5V_PIN				GPIO_NUM_48    	//检测升压输出
 
 #define ML307_RX_PIN            GPIO_NUM_16
 #define ML307_TX_PIN            GPIO_NUM_15
-
 
 #define DISPLAY_SPI_LCD_HOST    SPI2_HOST
 #define DISPLAY_SPI_CLOCK_HZ    (40 * 1000 * 1000)
@@ -42,8 +42,6 @@
 
 #define DISPLAY_BACKLIGHT_PIN   GPIO_NUM_46
 #define DISPLAY_BACKLIGHT_OUTPUT_INVERT false
-
-
 
 #define DISPLAY_WIDTH   320
 #define DISPLAY_HEIGHT  240
