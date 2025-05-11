@@ -18,6 +18,8 @@ class XiaoZhiYunliaoS3 : public DualNetworkBoard {
 private:
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;
+    Button volume_up_button_;
+    Button volume_down_button_;
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
     

@@ -44,6 +44,8 @@ esp_lcd_panel_handle_t panel = nullptr;
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
+      volume_up_button_(VOLUME_UP_BUTTON_GPIO),
+      volume_down_button_(VOLUME_DOWN_BUTTON_GPIO),
       power_manager_(new PowerManager()) {  
     power_manager_->Start5V();
     power_manager_->Initialize();
@@ -255,6 +257,39 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             SetFactoryWifiConfiguration();
         }
     });
+    volume_up_button_.OnClick([this]() {
+        power_save_timer_->WakeUp();
+        auto codec = GetAudioCodec();
+        auto volume = codec->output_volume() + 10;
+        if (volume > 100) {
+            volume = 100;
+        }
+        codec->SetOutputVolume(volume);
+        GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+    });
+
+    volume_up_button_.OnLongPress([this]() {
+        power_save_timer_->WakeUp();
+        GetAudioCodec()->SetOutputVolume(100);
+        GetDisplay()->ShowNotification(Lang::Strings::MAX_VOLUME);
+    });
+
+    volume_down_button_.OnClick([this]() {
+        power_save_timer_->WakeUp();
+        auto codec = GetAudioCodec();
+        auto volume = codec->output_volume() - 10;
+        if (volume < 0) {
+            volume = 0;
+        }
+        codec->SetOutputVolume(volume);
+        GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume));
+    });
+
+    volume_down_button_.OnLongPress([this]() {
+        power_save_timer_->WakeUp();
+        GetAudioCodec()->SetOutputVolume(0);
+        GetDisplay()->ShowNotification(Lang::Strings::MUTED);
+    });
 }
 
 void XiaoZhiYunliaoS3::InitializeIot() {
@@ -284,7 +319,7 @@ AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
         AUDIO_CODEC_PA_PIN, 
         AUDIO_CODEC_ES8388_ADDR, 
         AUDIO_INPUT_REFERENCE,
-        35.95f);
+        24.0f);//35.95f
     return &audio_codec;
 }
 
