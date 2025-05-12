@@ -30,6 +30,9 @@ struct BinaryProtocol3 {
 
 enum AbortReason {
     kAbortReasonNone,
+#if CONFIG_ENABLE_MUSIC_PLAYER
+    kAbortReasonPlayMusic,
+#endif
     kAbortReasonWakeWordDetected
 };
 

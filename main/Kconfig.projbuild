@@ -301,6 +301,13 @@ config USE_ALARM
     help
         一个自定义的闹钟功能
 
+config ENABLE_MUSIC_PLAYER
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用音乐播放器功能"
+    default y
+    help
+        启用音乐播放器功能，允许播放在线音乐。
+
 config WIFI_FACTORY_SSID
     string "WiFi Factory SSID"
     default ""

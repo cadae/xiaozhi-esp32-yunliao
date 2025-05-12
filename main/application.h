@@ -34,6 +34,15 @@
 #define AUDIO_OUTPUT_READY_EVENT (1 << 2)
 #define CHECK_NEW_VERSION_DONE_EVENT (1 << 3)
 
+#if CONFIG_ENABLE_MUSIC_PLAYER
+#define AUDIO_STATE_NONE        (0)
+#define AUDIO_STATE_LISTENING   (1 << 0)
+#define AUDIO_STATE_SPEAKING    (1 << 1)
+#define AUDIO_STATE_MUSIC       (1 << 2)
+
+class MusicService;
+#endif
+
 enum DeviceState {
     kDeviceStateUnknown,
     kDeviceStateStarting,
@@ -46,6 +55,9 @@ enum DeviceState {
     kDeviceStateActivating,
 #if CONFIG_USE_ALARM
     kDeviceStateAlarm,
+#endif
+#if CONFIG_ENABLE_MUSIC_PLAYER
+    kDeviceStateMusicPlaying,
 #endif
     kDeviceStateFatalError
 };
@@ -82,6 +94,14 @@ public:
 #if CONFIG_USE_ALARM
     AlarmManager* alarm_m_ = nullptr;
     std::list<std::vector<uint8_t>> audio_decode_queue_;
+#endif
+#if CONFIG_ENABLE_MUSIC_PLAYER
+    bool RequestAudioState(unsigned int state);
+    void ReleaseAudioState(unsigned int state);
+    bool ForceResetAudioHardware();
+    void HandleVoiceCommand(const std::string& message);
+    void HandleLLMInstruction(const cJSON* root);
+    Protocol* GetProtocol() { return protocol_.get(); }
 #endif
 
 private:
@@ -128,6 +148,11 @@ private:
     OpusResampler input_resampler_;
     OpusResampler reference_resampler_;
     OpusResampler output_resampler_;
+#if CONFIG_ENABLE_MUSIC_PLAYER
+    unsigned int audio_state_ = AUDIO_STATE_NONE;// 音频状态管理
+    std::mutex audio_state_mutex_;
+    std::unique_ptr<MusicService> music_service_;
+#endif
 
     void MainEventLoop();
     void OnAudioInput();
