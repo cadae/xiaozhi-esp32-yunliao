@@ -700,7 +700,7 @@ void Application::Start() {
     if (protocol_started) {
         std::string message = std::string(Lang::Strings::VERSION) + ota_.GetCurrentVersion();
         display->ShowNotification(message.c_str());
-        display->SetChatMessage("system", "");
+        // display->SetChatMessage("system", "");
         // Play the success sound to indicate the device is ready
         ResetDecoder();
         PlaySound(Lang::Sounds::P3_SUCCESS);
@@ -950,7 +950,6 @@ void Application::SetDeviceState(DeviceState state) {
     background_task_->WaitForCompletion();
 
     auto& board = Board::GetInstance();
-    auto codec = board.GetAudioCodec();
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
@@ -1005,6 +1004,7 @@ void Application::SetDeviceState(DeviceState state) {
 #if CONFIG_USE_ALARM
         case kDeviceStateAlarm:
             ResetDecoder();
+            auto codec = board.GetAudioCodec();
             codec->EnableOutput(true);
 #if CONFIG_USE_AUDIO_PROCESSING
             audio_processor_->Stop();

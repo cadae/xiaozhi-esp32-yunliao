@@ -34,6 +34,7 @@ public:
     void SetLogo(const char* logo);
     void SetStatus(const char* status) override;
     virtual void SetChatMessage(const char* role, const char* content) override; 
+    virtual void SetEmotion(const char* emotion) override;
 
     PageIndex GetPageIndex() const { return lv_page_index; }
     void SwitchPage(std::optional<PageIndex> target = std::nullopt);
@@ -48,7 +49,6 @@ public:
     bool isActivationStatus() const;
     bool isWifiConfigStatus() const;
     const std::string& GetCurrentStatus() const { return current_status_; }
-
 protected:
     lv_obj_t *logo_label_ = nullptr;
     lv_obj_t* config_container_ = nullptr;
@@ -59,6 +59,9 @@ protected:
     lv_obj_t* smartconfig_qrcode_ = nullptr;
     lv_obj_t* qr_container = nullptr;
     lv_obj_t* console_qrcode_ = nullptr;
+#if CONFIG_USE_GIF_EMOTION_STYLE
+    lv_obj_t* emotion_gif = nullptr;
+#endif
     PageIndex lv_page_index = PageIndex::PAGE_CHAT;
     std::mutex status_mutex_;
     std::string current_status_ = "";

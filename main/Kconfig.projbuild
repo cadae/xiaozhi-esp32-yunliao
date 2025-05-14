@@ -234,12 +234,6 @@ choice DISPLAY_ESP32S3_KORVO2_V3
         bool "ILI9341, 分辨率240*320"
 endchoice
 
-config USE_WECHAT_MESSAGE_STYLE
-    bool "使用微信聊天界面风格"
-    default n
-    help
-        使用微信聊天界面风格
-
 config USE_WAKE_WORD_DETECT
     bool "启用唤醒词检测"
     default y
@@ -293,6 +287,22 @@ choice LCD_CONTROLLER
     config LCD_CONTROLLER_NC
         bool "NC"
 endchoice
+
+config USE_WECHAT_MESSAGE_STYLE
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "使用微信聊天界面风格"
+    default n
+    help
+        使用微信聊天界面风格
+
+config USE_GIF_EMOTION_STYLE
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "使用GIF表情"
+    select LV_USE_GIF
+    select LV_GIF_CACHE_DECODE_DATA
+    default n
+    help
+        使用GIF表情
 
 config USE_ALARM
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3

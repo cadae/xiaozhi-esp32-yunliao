@@ -10,8 +10,19 @@
 #include "board.h"
 #include <string.h>
 #include "gb2big.h"
+#include <libs/gif/lv_gif.h>
+
 
 #define TAG "YunliaoDisplay"
+
+#if CONFIG_USE_GIF_EMOTION_STYLE
+LV_IMG_DECLARE(staticstate);
+LV_IMG_DECLARE(sad);
+LV_IMG_DECLARE(happy);
+LV_IMG_DECLARE(scare);
+LV_IMG_DECLARE(buxue);
+LV_IMG_DECLARE(anger);
+#endif
 
 LV_FONT_DECLARE(font_awesome_30_4);
 
@@ -660,6 +671,15 @@ void XiaoziyunliaoDisplay::NewChatPage() {
             emotion_label_ = nullptr;
         }
     } else {
+#if CONFIG_USE_GIF_EMOTION_STYLE
+        emotion_gif = lv_gif_create(content_);
+        int gif_size = LV_HOR_RES;
+        lv_obj_set_size(emotion_gif, gif_size, gif_size);
+        lv_obj_set_style_border_width(emotion_gif, 0, 0);
+        lv_obj_set_style_bg_opa(emotion_gif, LV_OPA_TRANSP, 0);
+        lv_obj_center(emotion_gif);
+        lv_gif_set_src(emotion_gif, &staticstate);
+#else
         // 创建表情标签
         emotion_label_ = lv_label_create(content_);
         lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
@@ -669,6 +689,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
             lv_obj_del(console_qrcode_);
             console_qrcode_ = nullptr;
         }
+#endif
     }
 
     // 创建聊天消息标签
@@ -678,6 +699,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0);
 }
+
 void XiaoziyunliaoDisplay::SetStatus(const char* status) {
     DisplayLockGuard lock(this);
     std::string old_status = current_status_;
@@ -952,8 +974,33 @@ XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
     if (smartconfig_qrcode_) { lv_obj_del(smartconfig_qrcode_); smartconfig_qrcode_ = nullptr; }
 }
 
-// void XiaoziyunliaoDisplay::SetEmotion(const char* emotion) {
-//     DisplayLockGuard lock(this);
-//     if()
-//     LcdDisplay::SetEmotion(emotion);
-// }
+void XiaoziyunliaoDisplay::SetEmotion(const char* emotion) {
+    DisplayLockGuard lock(this);
+#if CONFIG_USE_GIF_EMOTION_STYLE
+    struct Emotion {
+        const lv_img_dsc_t* gif;
+        const char* text;
+    };
+
+    static const std::vector<Emotion> emotions = {
+        {&staticstate, "neutral"}, {&happy, "happy"},   {&happy, "laughing"},
+        {&happy, "funny"},         {&sad, "sad"},       {&anger, "angry"},
+        {&scare, "surprised"},     {&buxue, "confused"}};
+
+    std::string_view emotion_view(emotion);
+    auto it = std::find_if(emotions.begin(), emotions.end(),
+                           [&emotion_view](const Emotion& e) { return e.text == emotion_view; });
+
+    if (emotion_gif == nullptr) {
+        return;
+    }
+
+    if (it != emotions.end()) {
+        lv_gif_set_src(emotion_gif, it->gif);
+    } else {
+        lv_gif_set_src(emotion_gif, &staticstate);
+    }
+#else
+    LcdDisplay::SetEmotion(emotion);
+#endif    
+}

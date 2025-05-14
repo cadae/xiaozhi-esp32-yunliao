@@ -12,10 +12,17 @@
 #include "esp_audio_simple_dec_default.h"
 
 #define TAG "MusicService"
+
+
 #define PRELOAD_BUFFER_THRESHOLD 50
 #define BUFFER_LOW_THRESHOLD 5
 #define BUFFER_HIGH_THRESHOLD 25
 #define BACKGROUND_PLAY_MODE true
+
+#if CONFIG_ENABLE_MUSIC_PLAYER
+#define SEARCH_URL "https://gdstudio-proxy.fanfuture.cn/api.php?types=search&source=%s&count=10&pages=1&name=%s"
+#define URL_FETCH_URL "https://gdstudio-proxy.fanfuture.cn/api.php?types=url&source=%s&id=%d&br=320"
+#define LYRIC_URL "https://gdstudio-proxy.fanfuture.cn/api.php?types=lyric&source=kuwo&id=%d"
 
 bool g_music_active = false;
 bool g_audio_output_managed_by_music = false;
@@ -270,12 +277,12 @@ bool MusicService::SearchMusic(const std::string& keyword) {
         }
         
         snprintf(search_url, 512, 
-                "https://music-api.gdstudio.xyz/api.php?types=search&source=%s&count=10&pages=1&name=%s",
+                SEARCH_URL,
                 current_source.c_str(), encoded_buf);
         
-        snprintf(url_fetch_url, 512, 
-                "https://music-api.gdstudio.xyz/api.php?types=url&source=%s&id=%%d&br=320",
-                current_source.c_str());
+        // snprintf(url_fetch_url, 512, 
+        //         URL_FETCH_URL1,
+        //         current_source.c_str());
         
         if (board.GetDisplay()) {
             std::string searchInfo = "正在搜索: ";
@@ -419,7 +426,7 @@ bool MusicService::SearchMusic(const std::string& keyword) {
         }
         
         snprintf(url_fetch_url, 512, 
-                "https://music-api.gdstudio.xyz/api.php?types=url&source=%s&id=%d&br=320",
+                URL_FETCH_URL,
                 current_source.c_str(), song_id_);
         
         auto& board = Board::GetInstance();
@@ -438,7 +445,8 @@ bool MusicService::SearchMusic(const std::string& keyword) {
             heap_caps_free(response_buffer);
             return false;
         }
-        
+
+        ESP_LOGI(TAG, "url_fetch_url: %s", url_fetch_url);        
         memset(response_buffer, 0, HTTP_RESPONSE_BUFFER_SIZE);
         response_len = 0;
         
@@ -1010,7 +1018,7 @@ bool MusicService::SendHttpRequest(const char* url, esp_http_client_method_t met
     esp_http_client_config_t config = {};
     config.url = url;
     config.method = method;
-    config.timeout_ms = 5000;
+    config.timeout_ms = 10000;
     config.buffer_size = 3072;
     config.buffer_size_tx = 2048;
     config.crt_bundle_attach = esp_crt_bundle_attach;
@@ -1511,7 +1519,7 @@ bool MusicService::FetchLyrics(int song_id) {
     }
     
     snprintf(lyrics_url, 256, 
-             "https://music-api.gdstudio.xyz/api.php?types=lyric&source=kuwo&id=%d", 
+             LYRIC_URL, 
              song_id);
     
     char* response_buffer = (char*)heap_caps_malloc(HTTP_RESPONSE_BUFFER_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -1524,6 +1532,7 @@ bool MusicService::FetchLyrics(int song_id) {
     memset(response_buffer, 0, HTTP_RESPONSE_BUFFER_SIZE);
     int response_len = 0;
     
+    ESP_LOGI(TAG, "lyrics_url: %s", lyrics_url);
     try {
         bool http_success = SendHttpRequest(lyrics_url, HTTP_METHOD_GET,
                                           nullptr, 0,
@@ -1886,4 +1895,4 @@ void MusicService::AudioPlayerTask(void* arg) {
     
     vTaskDelete(nullptr);
 }
-    
+#endif
