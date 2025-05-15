@@ -25,10 +25,10 @@
 Ota::Ota() {
     {
         Settings settings("wifi", false);
-        check_version_url_ = settings.GetString("ota_url");
-        if (check_version_url_.empty()) {
+        // check_version_url_ = settings.GetString("ota_url");
+        // if (check_version_url_.empty()) {
             check_version_url_ = CONFIG_OTA_URL;
-        }
+        // }
     }
 
 #ifdef ESP_EFUSE_BLOCK_USR_DATA
@@ -202,20 +202,20 @@ bool Ota::CheckVersion() {
             firmware_url_ = url->valuestring;
         }
 
-        if (version != NULL && url != NULL) {
-            // Check if the version is newer, for example, 0.1.0 is newer than 0.0.1
-            // has_new_version_ = IsNewVersionAvailable(current_version_, firmware_version_);
-            if (has_new_version_) {
-                ESP_LOGI(TAG, "New version available: %s", firmware_version_.c_str());
-            } else {
-                ESP_LOGI(TAG, "Current is the latest version");
-            }
-            // If the force flag is set to 1, the given version is forced to be installed
-            cJSON *force = cJSON_GetObjectItem(firmware, "force");
-            if (force != NULL && force->valueint == 1) {
-                has_new_version_ = true;
-            }
-        }
+        // if (version != NULL && url != NULL) {
+        //     // Check if the version is newer, for example, 0.1.0 is newer than 0.0.1
+        //     has_new_version_ = IsNewVersionAvailable(current_version_, firmware_version_);
+        //     if (has_new_version_) {
+        //         ESP_LOGI(TAG, "New version available: %s", firmware_version_.c_str());
+        //     } else {
+        //         ESP_LOGI(TAG, "Current is the latest version");
+        //     }
+        //     // If the force flag is set to 1, the given version is forced to be installed
+        //     cJSON *force = cJSON_GetObjectItem(firmware, "force");
+        //     if (force != NULL && force->valueint == 1) {
+        //         has_new_version_ = true;
+        //     }
+        // }
     } else {
         ESP_LOGW(TAG, "No firmware section found!");
     }
