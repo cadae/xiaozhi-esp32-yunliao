@@ -4,6 +4,8 @@
 #include "board.h"
 #include "wifi_board.h"
 #include "ml307_board.h"
+#include "web_socket.h"
+#include "ml307_at_modem.h"
 #include <memory>
 
 //enum NetworkType
@@ -13,10 +15,9 @@ enum class NetworkType {
 };
 
 // 双网络板卡类，可以在WiFi和ML307之间切换
-class DualNetworkBoard : public Board {
+class DualNetworkBoard : public WifiBoard {
 private:
-    // 使用基类指针存储当前活动的板卡
-    std::unique_ptr<Board> current_board_;
+    std::unique_ptr<Ml307Board> current_board_;  // 仅用于ML307模式
     NetworkType network_type_ = NetworkType::WIFI;  // Default to WiFi
 
     // ML307的引脚配置
@@ -43,9 +44,7 @@ public:
     // 获取当前网络类型
     NetworkType GetNetworkType() const { return network_type_; }
     
-    // 获取当前活动的板卡引用
-    Board& GetCurrentBoard() const { return *current_board_; }
-    
+   
     // 重写Board接口
     virtual std::string GetBoardType() override;
     virtual void StartNetwork() override;
@@ -56,10 +55,11 @@ public:
     virtual const char* GetNetworkStateIcon() override;
     virtual void SetPowerSaveMode(bool enabled) override;
     virtual std::string GetBoardJson() override;
-    void ResetWifiConfiguration();
+    // void ResetWifiConfiguration();
     void ClearWifiConfiguration();
     void SetFactoryWifiConfiguration();
     bool GetWifiConfigMode();
+    virtual void EnterWifiConfigMode() override;
     
 };
 

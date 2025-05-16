@@ -10,7 +10,7 @@
 static const char *TAG = "DualNetworkBoard";
 
 DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, size_t ml307_rx_buffer_size) 
-    : Board(), 
+    : WifiBoard(), 
       ml307_tx_pin_(ml307_tx_pin), 
       ml307_rx_pin_(ml307_rx_pin), 
       ml307_rx_buffer_size_(ml307_rx_buffer_size) {
@@ -35,21 +35,14 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
 }
 
 void DualNetworkBoard::InitializeCurrentBoard() {
-    bool ml307_ok = false;
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
-        if(static_cast<Ml307Board*>(current_board_.get())->CheckReady()){
-            ml307_ok = true;
-        }else{
-            ESP_LOGI(TAG, "Initialize ML307 board failed, switch to WIFI mode");
-            current_board_ = nullptr;
+        if(!current_board_->CheckReady()){
+            ESP_LOGI(TAG, "ML307初始化失败，切换回WiFi模式");
+            network_type_ = NetworkType::WIFI;
+            current_board_.reset();
         }
-    }
-    if (!ml307_ok || network_type_ == NetworkType::WIFI) {
-        ESP_LOGI(TAG, "Initialize WiFi board");
-        network_type_ = NetworkType::WIFI;
-        current_board_ = std::make_unique<WifiBoard>();
     }
 }
 
@@ -67,9 +60,10 @@ void DualNetworkBoard::SwitchNetworkType() {
     app.Reboot();
 }
 
- 
 std::string DualNetworkBoard::GetBoardType() {
-    return current_board_->GetBoardType();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->GetBoardType() : 
+        WifiBoard::GetBoardType();
 }
 
 void DualNetworkBoard::StartNetwork() {
@@ -77,59 +71,66 @@ void DualNetworkBoard::StartNetwork() {
     
     if (network_type_ == NetworkType::WIFI) {
         display->SetStatus(Lang::Strings::CONNECTING);
+        WifiBoard::StartNetwork();
     } else {
         display->SetStatus(Lang::Strings::DETECTING_MODULE);
+        current_board_->StartNetwork();
     }
-    current_board_->StartNetwork();
 }
 
 Http* DualNetworkBoard::CreateHttp() {
-    return current_board_->CreateHttp();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->CreateHttp() : 
+        WifiBoard::CreateHttp();
 }
 
 WebSocket* DualNetworkBoard::CreateWebSocket() {
-    return current_board_->CreateWebSocket();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->CreateWebSocket() : 
+        WifiBoard::CreateWebSocket();
 }
 
 Mqtt* DualNetworkBoard::CreateMqtt() {
-    return current_board_->CreateMqtt();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->CreateMqtt() : 
+        WifiBoard::CreateMqtt();
 }
 
 Udp* DualNetworkBoard::CreateUdp() {
-    return current_board_->CreateUdp();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->CreateUdp() : 
+        WifiBoard::CreateUdp();
 }
 
 const char* DualNetworkBoard::GetNetworkStateIcon() {
-    return current_board_->GetNetworkStateIcon();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->GetNetworkStateIcon() : 
+        WifiBoard::GetNetworkStateIcon();
 }
 
 void DualNetworkBoard::SetPowerSaveMode(bool enabled) {
-    current_board_->SetPowerSaveMode(enabled);
+    network_type_ == NetworkType::ML307 ? 
+        current_board_->SetPowerSaveMode(enabled) : 
+        WifiBoard::SetPowerSaveMode(enabled);
 }
 
 std::string DualNetworkBoard::GetBoardJson() {   
-    return current_board_->GetBoardJson();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->GetBoardJson() : 
+        WifiBoard::GetBoardJson();
 }
 
 bool DualNetworkBoard::GetWifiConfigMode() {
-    if (network_type_ == NetworkType::WIFI) {
-        return static_cast<WifiBoard*>(current_board_.get())->wifi_config_mode_;
-    }
-    return false;
+    return network_type_ == NetworkType::WIFI && 
+        WifiBoard::wifi_config_mode_;
 }
 
-void DualNetworkBoard::ResetWifiConfiguration() {
-    if (network_type_ == NetworkType::WIFI) {
-        static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
-    }
-}
 void DualNetworkBoard::ClearWifiConfiguration() {
     if (network_type_ == NetworkType::WIFI) {
-            auto &ssid_manager = SsidManager::GetInstance();
-            ssid_manager.Clear();
-            ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
-            static_cast<WifiBoard*>(current_board_.get())->ResetWifiConfiguration();
-            return;
+        auto &ssid_manager = SsidManager::GetInstance();
+        ssid_manager.Clear();
+        ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
+        WifiBoard::ResetWifiConfiguration();
     }
 }
 
@@ -145,4 +146,7 @@ void DualNetworkBoard::SetFactoryWifiConfiguration() {
             esp_restart();
         }
 #endif
+}
+void DualNetworkBoard::EnterWifiConfigMode() {
+    WifiBoard::EnterWifiConfigMode();
 }

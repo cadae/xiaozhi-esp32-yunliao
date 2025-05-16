@@ -18,8 +18,10 @@ class XiaoZhiYunliaoS3 : public DualNetworkBoard {
 private:
     i2c_master_bus_handle_t codec_i2c_bus_;
     Button boot_button_;
+#ifdef THREE_BUTTON_MODE
     Button volume_up_button_;
     Button volume_down_button_;
+#endif
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
     
@@ -45,7 +47,7 @@ public:
     virtual Backlight* GetBacklight() override;
     virtual AudioCodec* GetAudioCodec() override;
     bool GetBatteryLevel(int &level, bool& charging, bool& discharging) override;
-    // void EnterWifiConfigMode() override;
+    void EnterWifiConfigMode() override;
     void Sleep();
     void SetPressToTalkEnabled(bool enabled);
     std::string GetHardwareVersion() const;

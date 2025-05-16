@@ -44,8 +44,10 @@ esp_lcd_panel_handle_t panel = nullptr;
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
+#ifdef THREE_BUTTON_MODE
       volume_up_button_(VOLUME_UP_BUTTON_GPIO),
       volume_down_button_(VOLUME_DOWN_BUTTON_GPIO),
+#endif
       power_manager_(new PowerManager()) {  
     power_manager_->Start5V();
     power_manager_->Initialize();
@@ -257,6 +259,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             SetFactoryWifiConfiguration();
         }
     });
+#ifdef THREE_BUTTON_MODE
     volume_up_button_.OnClick([this]() {
         power_save_timer_->WakeUp();
         auto codec = GetAudioCodec();
@@ -290,6 +293,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         GetAudioCodec()->SetOutputVolume(0);
         GetDisplay()->ShowNotification(Lang::Strings::MUTED);
     });
+#endif
 }
 
 void XiaoZhiYunliaoS3::InitializeIot() {
@@ -319,7 +323,12 @@ AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
         AUDIO_CODEC_PA_PIN, 
         AUDIO_CODEC_ES8388_ADDR, 
         AUDIO_INPUT_REFERENCE,
-        24.0f);//35.95f
+#if CONFIG_USE_DEVICE_AEC || CONFIG_USE_SERVER_AEC
+        35.95f
+#else
+        24.0f
+#endif
+        );
     return &audio_codec;
 }
 
@@ -330,39 +339,40 @@ bool XiaoZhiYunliaoS3::GetBatteryLevel(int &level, bool& charging, bool& dischar
     return true;
 }
 
-// void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
-//     auto& application = Application::GetInstance();
-//     application.SetDeviceState(kDeviceStateWifiConfiguring);
+void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
+    ESP_LOGI(TAG, "EnterWifiConfigMode");
+    auto& application = Application::GetInstance();
+    application.SetDeviceState(kDeviceStateWifiConfiguring);
 
-//     auto& wifi_ap = WifiConfigurationAp::GetInstance();
-//     wifi_ap.SetLanguage(Lang::CODE);
-//     wifi_ap.SetSsidPrefix("Xiaozhi");
-//     wifi_ap.Start();
-//     wifi_ap.StartSmartConfig();
+    auto& wifi_ap = WifiConfigurationAp::GetInstance();
+    wifi_ap.SetLanguage(Lang::CODE);
+    wifi_ap.SetSsidPrefix("Xiaozhi");
+    wifi_ap.Start();
+    wifi_ap.StartSmartConfig();
 
-// #if (defined ja_jp) || (defined en_us)
-//     std::string hint = "";
-// #else
-//     std::string hint = Lang::Strings::SCAN_QR;
-// #endif
-//     hint += Lang::Strings::CONNECT_TO_HOTSPOT;
-//     hint += wifi_ap.GetSsid();
-//     hint += Lang::Strings::ACCESS_VIA_BROWSER;
-//     hint += wifi_ap.GetWebServerUrl();
-//     hint += Lang::Strings::HINT_SHUTDOWN;
+#if (defined ja_jp) || (defined en_us)
+    std::string hint = "";
+#else
+    std::string hint = Lang::Strings::SCAN_QR;
+#endif
+    hint += Lang::Strings::CONNECT_TO_HOTSPOT;
+    hint += wifi_ap.GetSsid();
+    hint += Lang::Strings::ACCESS_VIA_BROWSER;
+    hint += wifi_ap.GetWebServerUrl();
+    hint += Lang::Strings::HINT_SHUTDOWN;
     
-//     application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
+    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
 
-//     auto display = Board::GetInstance().GetDisplay();
-//     static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();
+    auto display = Board::GetInstance().GetDisplay();
+    static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();
     
-//     while (true) {
-//         int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-//         int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
-//         ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
-//         vTaskDelay(pdMS_TO_TICKS(10000));
-//     }
-// }
+    while (true) {
+        int free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        int min_free_sram = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+        ESP_LOGI(TAG, "Free internal: %u minimal internal: %u", free_sram, min_free_sram);
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    }
+}
 
 void XiaoZhiYunliaoS3::Sleep() {
     ESP_LOGI(TAG, "Entering deep sleep");
