@@ -34,7 +34,7 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
     settings.SetInt("type", network_type);
 }
 
-void DualNetworkBoard::InitializeCurrentBoard() {
+bool DualNetworkBoard::InitializeCurrentBoard() {
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
@@ -42,15 +42,22 @@ void DualNetworkBoard::InitializeCurrentBoard() {
             ESP_LOGI(TAG, "ML307初始化失败，切换回WiFi模式");
             network_type_ = NetworkType::WIFI;
             current_board_.reset();
+            return false;
         }
     }
+    return true;
 }
 
 void DualNetworkBoard::SwitchNetworkType() {
     auto display = GetDisplay();
-    if (network_type_ == NetworkType::WIFI) {    
-        SaveNetworkTypeToSettings(NetworkType::ML307);
-        display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
+    if (network_type_ == NetworkType::WIFI) {
+        network_type_ = NetworkType::ML307;
+        if(InitializeCurrentBoard()){
+            SaveNetworkTypeToSettings(NetworkType::ML307);
+            display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
+        }else{
+            return;
+        }
     } else {
         SaveNetworkTypeToSettings(NetworkType::WIFI);
         display->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
@@ -68,7 +75,6 @@ std::string DualNetworkBoard::GetBoardType() {
 
 void DualNetworkBoard::StartNetwork() {
     auto display = Board::GetInstance().GetDisplay();
-    
     if (network_type_ == NetworkType::WIFI) {
         display->SetStatus(Lang::Strings::CONNECTING);
         WifiBoard::StartNetwork();

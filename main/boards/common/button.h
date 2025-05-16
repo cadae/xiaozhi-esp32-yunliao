@@ -35,7 +35,6 @@ protected:
     std::function<void()> on_double_click_;
     std::function<void()> on_three_click_;
     std::function<void()> on_four_click_;
-    std::function<void()> on_multiple_click_;
 };
 
 #if CONFIG_SOC_ADC_SUPPORTED

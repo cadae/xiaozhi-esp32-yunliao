@@ -239,22 +239,19 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });    
     boot_button_.OnDoubleClick([this]() {
         // ESP_LOGI(TAG, "Button OnDoubleClick");
-        if (display_) {
+        if (display_ && !wifi_config_mode_) {
             display_->SwitchPage();
         }
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
         SwitchNetworkType();
-        auto& app = Application::GetInstance();
-        app.Reboot();
     });  
     boot_button_.OnFourClick([this]() {
         ESP_LOGI(TAG, "Button OnFourClick");
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             ClearWifiConfiguration();
         }
-        ESP_LOGI(TAG, "GetWifiConfigMode: %d", GetWifiConfigMode());
         if (GetWifiConfigMode()) {
             SetFactoryWifiConfiguration();
         }
