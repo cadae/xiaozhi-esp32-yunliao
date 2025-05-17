@@ -319,13 +319,7 @@ AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
         AUDIO_I2S_GPIO_DIN,
         AUDIO_CODEC_PA_PIN, 
         AUDIO_CODEC_ES8388_ADDR, 
-        AUDIO_INPUT_REFERENCE,
-#if CONFIG_USE_DEVICE_AEC || CONFIG_USE_SERVER_AEC
-        35.95f
-#else
-        24.0f
-#endif
-        );
+        AUDIO_INPUT_REFERENCE);
     return &audio_codec;
 }
 
