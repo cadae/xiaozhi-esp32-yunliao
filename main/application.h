@@ -135,12 +135,16 @@ private:
     TaskHandle_t audio_loop_task_handle_ = nullptr;
     BackgroundTask* background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
-    std::atomic<uint32_t> last_output_timestamp_ = 0;
 #if CONFIG_USE_ALARM
 #else
     std::list<AudioStreamPacket> audio_decode_queue_;
 #endif
     std::condition_variable audio_decode_cv_;
+
+    // 新增：用于维护音频包的timestamp队列
+    std::list<uint32_t> timestamp_queue_;
+    std::mutex timestamp_mutex_;
+    std::atomic<uint32_t> last_output_timestamp_ = 0;
 
     std::unique_ptr<OpusEncoderWrapper> opus_encoder_;
     std::unique_ptr<OpusDecoderWrapper> opus_decoder_;
