@@ -153,11 +153,13 @@ void Es8388AudioCodec::EnableInput(bool enable) {
             fs.channel_mask |= ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1);
         }
         ESP_ERROR_CHECK(esp_codec_dev_open(input_dev_, &fs));
-#if (defined CONFIG_USE_DEVICE_AEC) || (defined CONFIG_USE_SERVER_AEC)
-        ESP_ERROR_CHECK(esp_codec_dev_set_in_gain(input_dev_, 18.0f));
-#else
-        ESP_ERROR_CHECK(esp_codec_dev_set_in_gain(input_dev_, 24.0f));
+        float gain = 24.0f;
+#if (defined CONFIG_USE_DEVICE_AEC)
+        gain = 18.0f;
+#elif (defined CONFIG_USE_SERVER_AEC)
+        gain = 33.0f;
 #endif
+        ESP_ERROR_CHECK(esp_codec_dev_set_in_gain(input_dev_, gain));
 
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(input_dev_));

@@ -65,12 +65,12 @@ private:
     }
 
 public:
-    BoardControl() : Thing("BoardControl", "当前机器信息和控制"), timer_mode_(TimerMode::SLEEP) {
+    BoardControl() : Thing("BoardControl", ""), timer_mode_(TimerMode::SLEEP) {
 
         sleep_timer_ = xTimerCreate("SleepTimer", pdMS_TO_TICKS(5000), pdFALSE, this, SleepTimerCallback);
 
         // 添加网络信号质量
-        properties_.AddNumberProperty("NetworkQuality", "当前网络信号质量", [this]() -> int {
+        properties_.AddNumberProperty("Network", "网络信号质量", [this]() -> int {
             auto& wifi_station = WifiStation::GetInstance();
             if (wifi_station.IsConnected()) {
                 return wifi_station.GetRssi();
@@ -79,7 +79,7 @@ public:
             }
         });
         
-        properties_.AddNumberProperty("BatteryLevel", "当前电量百分比", [this]() -> int {
+        properties_.AddNumberProperty("Battery", "电量百分比", [this]() -> int {
             int level = 0;
             bool charging = false;
             bool discharging = false;
@@ -97,34 +97,34 @@ public:
             return charging;
         });
 
-        properties_.AddStringProperty("HardwareVersion", "机器硬件版本", 
+        properties_.AddStringProperty("HardwareVer", "硬件版本", 
             [this]() -> std::string { 
                 auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
                 return board->GetHardwareVersion();
             });
 
-        // properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
-        //     [this]() -> std::string { return GetFirmwareVersion(); });
+        // // properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
+        // //     [this]() -> std::string { return GetFirmwareVersion(); });
 
-        properties_.AddStringProperty("CurrentVersion", "当前固件版本",
+        properties_.AddStringProperty("FirmwareVer", "固件版本",
             [this]() -> std::string { return GetCurrentVersion(); });
 
-        // properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
-        //     [this]() -> bool { return HasNewVersion(); });
+        // // properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
+        // //     [this]() -> bool { return HasNewVersion(); });
 
-        properties_.AddStringProperty("MACAddress", "设备MAC地址",
+        properties_.AddStringProperty("MACAddr", "设备MAC地址",
             []() -> std::string { return SystemInfo::GetMacAddress(); });
 
-        properties_.AddNumberProperty("FlashSize", "闪存容量(MB)",
-            []() -> int { return SystemInfo::GetFlashSize() / 1024 / 1024; });
+        // // properties_.AddNumberProperty("FlashSize", "闪存容量(MB)",
+        // //     []() -> int { return SystemInfo::GetFlashSize() / 1024 / 1024; });
 
-        properties_.AddStringProperty("ChipModel", "芯片型号",
-            []() -> std::string { return SystemInfo::GetChipModelName(); });
+        // properties_.AddStringProperty("ChipModel", "芯片型号",
+        //     []() -> std::string { return SystemInfo::GetChipModelName(); });
 
-        properties_.AddNumberProperty("FreeHeap", "可用内存(bytes)",
-            []() -> int { return SystemInfo::GetFreeHeapSize(); });
+        // // properties_.AddNumberProperty("FreeHeap", "可用内存",
+        // //     []() -> int { return SystemInfo::GetFreeHeapSize(); });
 
-        methods_.AddMethod("Sleep", "延迟5秒后进入关机状态，调用前需要经过再次确认", ParameterList(), 
+        methods_.AddMethod("Sleep", "设备关机，需确认", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying sleep for 5 seconds");
                 if (sleep_timer_ != NULL) {
@@ -133,7 +133,7 @@ public:
                 }
             });
 
-        methods_.AddMethod("Restart", "延迟5秒后重启设备，调用前需要经过再次确认", ParameterList(),
+        methods_.AddMethod("Restart", "重启设备，需确认", ParameterList(),
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "Delaying restart for 5 seconds");
                 if (sleep_timer_ != NULL) {
@@ -142,12 +142,11 @@ public:
                 }
             });
 
-        methods_.AddMethod("ResetWifiConfiguration", "重新配网，调用前需要经过再次确认", ParameterList(), 
+        methods_.AddMethod("ResetWifi", "重新配网，需确认", ParameterList(), 
             [this](const ParameterList& parameters) {
                 ESP_LOGI(TAG, "ResetWifiConfiguration");
                 auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
                 board->ResetWifiConfiguration();
-              
             });
 
         // methods_.AddMethod("UpdateFirmware", "立即更新固件", ParameterList(),

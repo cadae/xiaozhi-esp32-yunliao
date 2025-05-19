@@ -24,7 +24,7 @@ DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_
 
 NetworkType DualNetworkBoard::LoadNetworkTypeFromSettings() {
     Settings settings("network", true);
-    int network_type = settings.GetInt("type", 0); // 默认使用WiFi (0)
+    int network_type = settings.GetInt("type", 1); // 默认使用4G (1)
     return network_type == 1 ? NetworkType::ML307 : NetworkType::WIFI;
 }
 
@@ -38,9 +38,12 @@ bool DualNetworkBoard::InitializeCurrentBoard() {
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
-        if(!current_board_->CheckReady()){
+        if(current_board_->CheckReady()){
+            return true;
+        }else{
             ESP_LOGI(TAG, "ML307初始化失败，切换回WiFi模式");
             network_type_ = NetworkType::WIFI;
+            SaveNetworkTypeToSettings(network_type_);
             current_board_.reset();
             return false;
         }

@@ -10,7 +10,7 @@
 
 static QueueHandle_t gpio_evt_queue = NULL;
 uint16_t battCnt;//闪灯次数
-uint16_t battLife = 0; //电量
+int battLife = -1; //电量
 
 // 中断服务程序
 static void IRAM_ATTR batt_mon_isr_handler(void* arg) {
@@ -128,7 +128,7 @@ bool PowerManager::IsDischarging() {
 }
 
 bool PowerManager::IsChargingDone() {
-    return battLife >= 95;
+    return battLife >= 92;
 }
 
 int PowerManager::GetBatteryLevel() {
