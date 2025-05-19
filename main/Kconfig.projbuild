@@ -74,6 +74,8 @@ choice BOARD_TYPE
         bool "神奇按钮 Magiclick_C3_v2"
     config BOARD_TYPE_M5STACK_CORE_S3
         bool "M5Stack CoreS3"
+    config BOARD_TYPE_M5STACK_CORE_TAB5
+        bool "M5Stack Tab5"
     config BOARD_TYPE_ATOMS3_ECHO_BASE
         bool "AtomS3 + Echo Base"
     config BOARD_TYPE_ATOMS3R_ECHO_BASE
@@ -156,6 +158,8 @@ choice BOARD_TYPE
         bool "小智云聊S3"
     config BOARD_TYPE_ESP_S3_LCD_EV_Board
         bool "乐鑫ESP S3 LCD EV Board开发板"
+    config BOARD_TYPE_ZHENGCHEN_1_54TFT_WIFI
+        bool "征辰科技1.54(WIFI)"
 endchoice
 
 choice ESP_S3_LCD_EV_Board_Version_TYPE
