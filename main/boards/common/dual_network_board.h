@@ -32,7 +32,7 @@ private:
     void SaveNetworkTypeToSettings(NetworkType type);
 
     // 初始化当前网络类型对应的板卡
-    bool InitializeCurrentBoard();
+    void InitializeCurrentBoard();
  
 public:
     DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_pin, size_t ml307_rx_buffer_size = 4096);

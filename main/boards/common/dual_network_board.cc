@@ -23,8 +23,9 @@ DualNetworkBoard::DualNetworkBoard(gpio_num_t ml307_tx_pin, gpio_num_t ml307_rx_
 }
 
 NetworkType DualNetworkBoard::LoadNetworkTypeFromSettings() {
-    Settings settings("network", true);
+    Settings settings("network", false);
     int network_type = settings.GetInt("type", 1); // 默认使用4G (1)
+    ESP_LOGI(TAG, "Initialize board type %d" ,network_type);
     return network_type == 1 ? NetworkType::ML307 : NetworkType::WIFI;
 }
 
@@ -34,28 +35,22 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
     settings.SetInt("type", network_type);
 }
 
-bool DualNetworkBoard::InitializeCurrentBoard() {
+void DualNetworkBoard::InitializeCurrentBoard() {
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
-        if(current_board_->CheckReady()){
-            return true;
-        }else{
-            ESP_LOGI(TAG, "ML307初始化失败，切换回WiFi模式");
-            network_type_ = NetworkType::WIFI;
-            SaveNetworkTypeToSettings(network_type_);
-            current_board_.reset();
-            return false;
-        }
+    // } else {
+    //     ESP_LOGI(TAG, "Initialize WiFi board");
+    //     current_board_ = std::make_unique<WifiBoard>();
     }
-    return true;
 }
 
 void DualNetworkBoard::SwitchNetworkType() {
     auto display = GetDisplay();
     if (network_type_ == NetworkType::WIFI) {
         network_type_ = NetworkType::ML307;
-        if(InitializeCurrentBoard()){
+        Ml307Board* temp_board = new Ml307Board(ml307_tx_pin_, ml307_rx_pin_, ml307_rx_buffer_size_);
+        if(temp_board->CheckReady()){
             SaveNetworkTypeToSettings(NetworkType::ML307);
             display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
         }else{
@@ -69,6 +64,7 @@ void DualNetworkBoard::SwitchNetworkType() {
     auto& app = Application::GetInstance();
     app.Reboot();
 }
+
 
 std::string DualNetworkBoard::GetBoardType() {
     return network_type_ == NetworkType::ML307 ? 
