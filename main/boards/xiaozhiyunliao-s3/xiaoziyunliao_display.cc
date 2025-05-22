@@ -26,7 +26,7 @@ LV_IMG_DECLARE(anger);
 
 LV_FONT_DECLARE(font_awesome_30_4);
 
-constexpr char CONSOLE_URL[] = "https://xiaozhi.me/console";
+constexpr char CONSOLE_URL[] = "https://soundbox-admin.century-cloud.com/";
 constexpr char WIFI_URL[] = "https://iot.espressif.cn/configWXDeviceWiFi.html";
 
 XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
