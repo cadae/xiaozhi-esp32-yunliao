@@ -42,7 +42,7 @@
 esp_lcd_panel_handle_t panel = nullptr;
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
-    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
+    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, 4096, 0),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
 #ifdef THREE_BUTTON_MODE
       volume_up_button_(VOLUME_UP_BUTTON_GPIO),
