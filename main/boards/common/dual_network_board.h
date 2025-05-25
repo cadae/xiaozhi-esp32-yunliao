@@ -60,7 +60,7 @@ public:
     void SetFactoryWifiConfiguration();
     bool GetWifiConfigMode();
     virtual void EnterWifiConfigMode() override;
-    
+    virtual std::string GetDeviceStatusJson() override;
 };
 
 #endif // DUAL_NETWORK_BOARD_H 

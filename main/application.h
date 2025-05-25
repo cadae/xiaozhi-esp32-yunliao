@@ -90,6 +90,7 @@ public:
     void WakeWordInvoke(const std::string& wake_word);
     void PlaySound(const std::string_view& sound);
     bool CanEnterSleepMode();
+    void SendMcpMessage(const std::string& payload);
     Ota& getOta() { return ota_; }
 #if CONFIG_USE_ALARM
     AlarmManager* alarm_m_ = nullptr;

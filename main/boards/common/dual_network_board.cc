@@ -155,3 +155,6 @@ void DualNetworkBoard::SetFactoryWifiConfiguration() {
 void DualNetworkBoard::EnterWifiConfigMode() {
     WifiBoard::EnterWifiConfigMode();
 }
+std::string DualNetworkBoard::GetDeviceStatusJson() {
+    return current_board_->GetDeviceStatusJson();
+}

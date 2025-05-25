@@ -23,6 +23,7 @@ public:
     virtual std::string GetBoardJson() override;
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
     bool CheckReady();
+    virtual std::string GetDeviceStatusJson() override;
 };
 
 #endif // ML307_BOARD_H
