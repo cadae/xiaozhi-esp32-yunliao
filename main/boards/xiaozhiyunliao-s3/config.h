@@ -23,7 +23,7 @@
 #define BOOT_BUTTON_PIN         GPIO_NUM_2
 #define BOOT_5V_PIN             GPIO_NUM_3      //5V升压输出
 #define MON_BATT_PIN            GPIO_NUM_43    	//检测PMU电池指示
-#define MON_BATT_CNT            65    	        //检测PMU电池时间
+#define MON_BATT_CNT            70    	        //检测PMU电池秒数
 #define MON_USB_PIN				GPIO_NUM_47    	//检测USB插入
 // #define MON_5V_PIN				GPIO_NUM_48    	//检测升压输出
 
