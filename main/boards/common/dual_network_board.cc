@@ -61,6 +61,11 @@ void DualNetworkBoard::SwitchNetworkType() {
         display->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);
     }
     vTaskDelay(pdMS_TO_TICKS(1000));
+    auto codec = Board::GetInstance().GetAudioCodec();
+    if (codec) {
+        codec->EnableOutput(false);
+        codec->EnableInput(false);
+    }
     auto& app = Application::GetInstance();
     app.Reboot();
 }
@@ -135,6 +140,11 @@ void DualNetworkBoard::ClearWifiConfiguration() {
         auto &ssid_manager = SsidManager::GetInstance();
         ssid_manager.Clear();
         ESP_LOGI(TAG, "WiFi configuration and SSID list cleared");
+        auto codec = Board::GetInstance().GetAudioCodec();
+        if (codec) {
+            codec->EnableOutput(false);
+            codec->EnableInput(false);
+        }        
         WifiBoard::ResetWifiConfiguration();
     }
 }
@@ -148,6 +158,11 @@ void DualNetworkBoard::SetFactoryWifiConfiguration() {
             ssid_manager.AddSsid(CONFIG_WIFI_FACTORY_SSID, CONFIG_WIFI_FACTORY_PASSWORD);
             Settings settings("wifi", true);
             settings.SetInt("force_ap", 0);
+            auto codec = Board::GetInstance().GetAudioCodec();
+            if (codec) {
+                codec->EnableOutput(false);
+                codec->EnableInput(false);
+            }
             esp_restart();
         }
 #endif

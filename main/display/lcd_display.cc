@@ -151,7 +151,7 @@ SpiLcdDisplay::SpiLcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_h
         lv_display_set_offset(display_, offset_x, offset_y);
     }
 
-    SetupUI();
+    // SetupUI();
 }
 
 // RGB LCD实现
@@ -760,9 +760,9 @@ void LcdDisplay::SetEmotion(const char* emotion) {
         lv_label_set_text(emotion_label_, "😶");
     }
     
-    // 显示emotion_label_，隐藏preview_image_
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     if (preview_image_ != nullptr) {
+        // 显示emotion_label_，隐藏preview_image_
+        lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -775,9 +775,9 @@ void LcdDisplay::SetIcon(const char* icon) {
     lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
     lv_label_set_text(emotion_label_, icon);
     
-    // 显示emotion_label_，隐藏preview_image_
-    lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     if (preview_image_ != nullptr) {
+        // 显示emotion_label_，隐藏preview_image_
+        lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
 }

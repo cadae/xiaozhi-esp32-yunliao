@@ -22,16 +22,17 @@ private:
     lv_img_dsc_t preview_image_;
     std::string explain_url_;
     std::string explain_token_;
-    std::thread preview_thread_;
     std::thread encoder_thread_;
 
-    QueueHandle_t jpeg_queue_ = nullptr;
 public:
     Esp32Camera(const camera_config_t& config);
     ~Esp32Camera();
 
     virtual void SetExplainUrl(const std::string& url, const std::string& token);
     virtual bool Capture();
+    // 翻转控制函数
+    virtual bool SetHMirror(bool enabled) override;
+    virtual bool SetVFlip(bool enabled) override;
     virtual std::string Explain(const std::string& question);
 };
 

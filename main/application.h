@@ -30,9 +30,7 @@
 #endif
 
 #define SCHEDULE_EVENT (1 << 0)
-#define AUDIO_INPUT_READY_EVENT (1 << 1)
-#define AUDIO_OUTPUT_READY_EVENT (1 << 2)
-#define CHECK_NEW_VERSION_DONE_EVENT (1 << 3)
+#define CHECK_NEW_VERSION_DONE_EVENT (1 << 2)
 
 #if CONFIG_ENABLE_MUSIC_PLAYER
 #define AUDIO_STATE_NONE        (0)
@@ -63,6 +61,7 @@ enum DeviceState {
 };
 
 #define OPUS_FRAME_DURATION_MS 60
+#define MAX_AUDIO_PACKETS_IN_QUEUE (2400 / OPUS_FRAME_DURATION_MS)
 
 class Application {
 public:
