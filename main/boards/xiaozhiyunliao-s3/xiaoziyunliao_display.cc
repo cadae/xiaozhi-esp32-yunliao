@@ -72,18 +72,6 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
 #define LIGHT_BORDER_COLOR           lv_color_hex(0xE0E0E0)     // Light gray border
 #define LIGHT_LOW_BATTERY_COLOR      lv_color_black()           // Black for light mode
 
-// Theme color structure
-struct ThemeColors {
-    lv_color_t background;
-    lv_color_t text;
-    lv_color_t chat_background;
-    lv_color_t user_bubble;
-    lv_color_t assistant_bubble;
-    lv_color_t system_bubble;
-    lv_color_t system_text;
-    lv_color_t border;
-    lv_color_t low_battery;
-};
 
 // Define dark theme colors
 static const ThemeColors DARK_THEME = {

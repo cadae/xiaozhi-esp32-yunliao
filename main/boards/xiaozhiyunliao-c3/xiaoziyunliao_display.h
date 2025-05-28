@@ -63,7 +63,7 @@ protected:
     std::mutex status_mutex_;
     std::string current_status_ = "";
 
-    void Update() override;
+    void UpdateStatusBar(bool update_all = false) override;
 };
 
 #endif // XIAOZIYUNLIAO_DISPLAY_H 

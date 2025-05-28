@@ -61,19 +61,6 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
 #define LIGHT_BORDER_COLOR           lv_color_hex(0xE0E0E0)     // Light gray border
 #define LIGHT_LOW_BATTERY_COLOR      lv_color_black()           // Black for light mode
 
-// Theme color structure
-struct ThemeColors {
-    lv_color_t background;
-    lv_color_t text;
-    lv_color_t chat_background;
-    lv_color_t user_bubble;
-    lv_color_t assistant_bubble;
-    lv_color_t system_bubble;
-    lv_color_t system_text;
-    lv_color_t border;
-    lv_color_t low_battery;
-};
-
 // Define dark theme colors
 static const ThemeColors DARK_THEME = {
     .background = DARK_BACKGROUND_COLOR,
@@ -928,15 +915,16 @@ bool XiaoziyunliaoDisplay::isWifiConfigStatus() const {
     return current_status_ == Lang::Strings::WIFI_CONFIG_MODE;
 }
 
-void XiaoziyunliaoDisplay::Update() {
+void XiaoziyunliaoDisplay::UpdateStatusBar(bool update_all) {
     auto& board = Board::GetInstance();
     int battery_level;
     bool charging, discharging;
     if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN)
-         && board.GetBatteryLevel(battery_level, charging, discharging) && battery_level > 0) {
+        && board.GetBatteryLevel(battery_level, charging, discharging)
+        && battery_level > 0) {
         lv_obj_clear_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
     }
-    SpiLcdDisplay::Update();
+    SpiLcdDisplay::UpdateStatusBar(update_all);
 }
 
 XiaoziyunliaoDisplay::~XiaoziyunliaoDisplay() {
