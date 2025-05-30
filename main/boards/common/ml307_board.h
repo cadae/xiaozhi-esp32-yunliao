@@ -24,6 +24,7 @@ public:
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
     bool CheckReady();
     virtual std::string GetDeviceStatusJson() override;
+    std::string GetHardwareVersion() const override { return ""; }
 };
 
 #endif // ML307_BOARD_H

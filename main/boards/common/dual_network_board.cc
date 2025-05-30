@@ -171,5 +171,7 @@ void DualNetworkBoard::EnterWifiConfigMode() {
     WifiBoard::EnterWifiConfigMode();
 }
 std::string DualNetworkBoard::GetDeviceStatusJson() {
-    return current_board_->GetDeviceStatusJson();
+    return network_type_ == NetworkType::ML307 ? 
+        current_board_->GetDeviceStatusJson() : 
+        WifiBoard::GetDeviceStatusJson();    
 }

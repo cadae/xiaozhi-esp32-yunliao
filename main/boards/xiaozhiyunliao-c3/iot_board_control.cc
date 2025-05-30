@@ -99,7 +99,7 @@ public:
 
         properties_.AddStringProperty("HardwareVersion", "机器硬件版本", 
             [this]() -> std::string { 
-                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                auto& board = Board::GetInstance();
                 return board->GetHardwareVersion();
             });
 

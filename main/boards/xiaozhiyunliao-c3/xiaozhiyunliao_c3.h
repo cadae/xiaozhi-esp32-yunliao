@@ -54,7 +54,7 @@ public:
     void Sleep();
     void StopNetwork();
     void SetPressToTalkEnabled(bool enabled);
-    std::string GetHardwareVersion() const;
+    std::string GetHardwareVersion() const override;
     void MCUSleep();
     void PowerSaveTimerSetEnabled(bool enabled);
 };

@@ -20,6 +20,7 @@ public:
     virtual std::string GetBoardJson() override;
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
     virtual std::string GetDeviceStatusJson() override;
+    virtual std::string GetHardwareVersion() const override { return ""; }
 };
 
 #endif // WIFI_BOARD_H

@@ -17,6 +17,7 @@
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
+#include "mcp_tools.h"
 
 #define TAG "YunliaoC3"
 
@@ -81,8 +82,6 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     Start5V();
     InitializeI2c();
     InitializeButtons();
-    InitializePowerSaveTimer();
-    InitializeIot();
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
     InitializeLCDDisplay();
@@ -96,6 +95,8 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     if(GetBacklight()->brightness() == 0){
         GetBacklight()->SetBrightness(60);
     }
+    InitializePowerSaveTimer();
+    InitializeIot();
     ESP_LOGI(TAG, "Inited");
 }
 
@@ -326,14 +327,16 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
 }
 
 void XiaoZhiYunliaoC3::InitializeIot() {
-    Settings settings("vendor");
-
+#if CONFIG_IOT_PROTOCOL_XIAOZHI
     auto& thing_manager = iot::ThingManager::GetInstance();
     thing_manager.AddThing(iot::CreateThing("Speaker"));
     thing_manager.AddThing(iot::CreateThing("LCDScreen"));
     thing_manager.AddThing(iot::CreateThing("BoardControl"));
 #if CONFIG_USE_ALARM
     thing_manager.AddThing(iot::CreateThing("AlarmIot"));
+#endif
+#elif CONFIG_IOT_PROTOCOL_MCP
+    static McpTools mcptools;
 #endif
 }
 

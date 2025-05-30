@@ -50,7 +50,7 @@ public:
     void EnterWifiConfigMode() override;
     void Sleep();
     void SetPressToTalkEnabled(bool enabled);
-    std::string GetHardwareVersion() const;
+    std::string GetHardwareVersion() const override;
     void PowerSaveTimerSetEnabled(bool enabled);
 };
 

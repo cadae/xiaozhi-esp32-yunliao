@@ -16,6 +16,7 @@
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
+#include "mcp_tools.h"
 
 #define TAG "YunliaoS3"
 
@@ -48,12 +49,11 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
       volume_up_button_(VOLUME_UP_BUTTON_GPIO),
       volume_down_button_(VOLUME_DOWN_BUTTON_GPIO),
 #endif
-      power_manager_(new PowerManager()) {  
+    power_manager_(new PowerManager()) {  
     power_manager_->Start5V();
     power_manager_->Initialize();
     InitializeI2c();
     InitializeButtons();
-    InitializePowerSaveTimer();
     power_manager_->OnChargingStatusDisChanged([this](bool is_discharging) {
         if(power_save_timer_){
             if (is_discharging) {
@@ -64,7 +64,6 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         }
     });
 
-    InitializeIot();
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
     InitializeLCDDisplay();
@@ -75,6 +74,8 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     if(GetBacklight()->brightness() == 0){
         GetBacklight()->SetBrightness(60);
     }
+    InitializePowerSaveTimer();
+    InitializeIot();
     ESP_LOGI(TAG, "Inited");
 }
 
@@ -296,14 +297,16 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 }
 
 void XiaoZhiYunliaoS3::InitializeIot() {
-    Settings settings("vendor");
-
+#if CONFIG_IOT_PROTOCOL_XIAOZHI
     auto& thing_manager = iot::ThingManager::GetInstance();
     thing_manager.AddThing(iot::CreateThing("Speaker"));
     thing_manager.AddThing(iot::CreateThing("LCDScreen"));
     thing_manager.AddThing(iot::CreateThing("BoardControl"));
 #if CONFIG_USE_ALARM
     thing_manager.AddThing(iot::CreateThing("AlarmIot"));
+#endif
+#elif CONFIG_IOT_PROTOCOL_MCP
+     McpTools::GetInstance();
 #endif
 }
 
