@@ -101,7 +101,7 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
 }
 
 void XiaoZhiYunliaoC3::InitializePowerSaveTimer() {
-    power_save_timer_ = new PowerSaveTimer(-1, 120, 600);
+    power_save_timer_ = new PowerSaveTimer(-1, -1, 600);
     power_save_timer_->OnEnterSleepMode([this]() {
         ESP_LOGI(TAG, "Enabling sleep mode");
         auto display = GetDisplay();
@@ -231,7 +231,9 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
             .emoji_font = font_emoji_64_init(),
 #endif
         });
-        std::string helpMessage = Lang::Strings::HELP1;
+        std::string helpMessage = Lang::Strings::HELP4;
+         helpMessage += "\n"; 
+        helpMessage += Lang::Strings::HELP1;
         helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP2;
         display_->SetChatMessage("system", helpMessage.c_str());
@@ -336,7 +338,7 @@ void XiaoZhiYunliaoC3::InitializeIot() {
     thing_manager.AddThing(iot::CreateThing("AlarmIot"));
 #endif
 #elif CONFIG_IOT_PROTOCOL_MCP
-    static McpTools mcptools;
+    McpTools::GetInstance();
 #endif
 }
 

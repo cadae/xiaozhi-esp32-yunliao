@@ -306,7 +306,7 @@ void XiaoZhiYunliaoS3::InitializeIot() {
     thing_manager.AddThing(iot::CreateThing("AlarmIot"));
 #endif
 #elif CONFIG_IOT_PROTOCOL_MCP
-     McpTools::GetInstance();
+    McpTools::GetInstance();
 #endif
 }
 

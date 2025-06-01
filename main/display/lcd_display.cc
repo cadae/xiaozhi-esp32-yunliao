@@ -76,7 +76,7 @@ LcdDisplay::LcdDisplay(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_handle_
 
     // Load theme from settings
     Settings settings("display", false);
-    current_theme_name_ = settings.GetString("theme", "light");
+    current_theme_name_ = settings.GetString("theme", "dark");
 
     // Update the theme
     if (current_theme_name_ == "dark") {

@@ -100,7 +100,7 @@ public:
         properties_.AddStringProperty("HardwareVersion", "机器硬件版本", 
             [this]() -> std::string { 
                 auto& board = Board::GetInstance();
-                return board->GetHardwareVersion();
+                return board.GetHardwareVersion();
             });
 
         // properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
