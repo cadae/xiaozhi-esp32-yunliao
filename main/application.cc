@@ -726,8 +726,13 @@ void Application::Start() {
                 // Play the pop up sound to indicate the wake word is detected
                 // And wait 60ms to make sure the queue has been processed by audio task
                 ResetDecoder();
-                PlaySound(Lang::Sounds::P3_POPUP);
-                vTaskDelay(pdMS_TO_TICKS(60));
+                // PlaySound(Lang::Sounds::P3_POPUP);
+                // vTaskDelay(pdMS_TO_TICKS(60));
+                Schedule([this, wake_word]() {
+                    if (protocol_) {
+                        protocol_->SendWakeWordDetected(wake_word); 
+                    }
+                });
 #endif
                 SetListeningMode(aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime);
             } else if (device_state_ == kDeviceStateSpeaking) {
