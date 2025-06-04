@@ -721,7 +721,7 @@ void Application::Start() {
                     protocol_->SendAudio(packet);
                 }
                 // Set the chat state to wake word detected
-                protocol_->SendWakeWordDetected(wake_word);
+                protocol_->SendWakeWordDetected(Lang::Strings::WAKE_WORD);
 #else
                 // Play the pop up sound to indicate the wake word is detected
                 // And wait 60ms to make sure the queue has been processed by audio task
@@ -730,7 +730,7 @@ void Application::Start() {
                 // vTaskDelay(pdMS_TO_TICKS(60));
                 Schedule([this, wake_word]() {
                     if (protocol_) {
-                        protocol_->SendWakeWordDetected(wake_word); 
+                        protocol_->SendWakeWordDetected(Lang::Strings::WAKE_WORD); 
                     }
                 });
 #endif
