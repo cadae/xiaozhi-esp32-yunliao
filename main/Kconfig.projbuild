@@ -91,6 +91,9 @@ choice BOARD_TYPE
     config BOARD_TYPE_ESP32_CGC
         bool "ESP32 CGC"
         depends on IDF_TARGET_ESP32
+    config BOARD_TYPE_ESP32_CGC_144
+        bool "ESP32 CGC 144"
+        depends on IDF_TARGET_ESP32
     config BOARD_TYPE_KEVIN_YUYING_313LCD
         bool "鱼鹰科技3.13LCD开发板"
         depends on IDF_TARGET_ESP32S3
@@ -394,9 +397,9 @@ choice IOT_PROTOCOL
     help
         IoT 协议，用于获取设备状态与发送控制指令
     config IOT_PROTOCOL_MCP
-        bool "MCP协议 2024-11-05"
+        bool "MCP 2024-11-05"
     config IOT_PROTOCOL_XIAOZHI
-        bool "小智IoT协议 1.0"
+        bool "Xiaozhi IoT 1.0 (Deprecated)"
 endchoice
         
 choice YUNLIAO_C3_VERSION
