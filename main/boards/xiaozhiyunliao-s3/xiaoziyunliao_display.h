@@ -46,6 +46,7 @@ public:
     void DelChatPage();
     void ShowChatPage();
     void HideChatPage();
+    void DelGifPage();
     bool isActivationStatus() const;
     bool isWifiConfigStatus() const;
     const std::string& GetCurrentStatus() const { return current_status_; }
@@ -59,9 +60,10 @@ protected:
     lv_obj_t* smartconfig_qrcode_ = nullptr;
     lv_obj_t* qr_container = nullptr;
     lv_obj_t* console_qrcode_ = nullptr;
-#if CONFIG_USE_GIF_EMOTION_STYLE
+// #if CONFIG_USE_GIF_EMOTION_STYLE
     lv_obj_t* emotion_gif = nullptr;
-#endif
+    TimerHandle_t gif_timer_;
+// #endif
     PageIndex lv_page_index = PageIndex::PAGE_CHAT;
     std::mutex status_mutex_;
     std::string current_status_ = "";

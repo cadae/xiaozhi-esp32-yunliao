@@ -95,7 +95,7 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     if(GetBacklight()->brightness() == 0){
         GetBacklight()->SetBrightness(60);
     }
-    InitializePowerSaveTimer();
+    // InitializePowerSaveTimer();
     InitializeIot();
     ESP_LOGI(TAG, "Inited");
 }

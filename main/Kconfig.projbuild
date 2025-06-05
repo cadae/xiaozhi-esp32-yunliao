@@ -25,7 +25,7 @@ endchoice
 
 choice BOARD_TYPE
     prompt "Board Type"
-    default BOARD_TYPE_BREAD_COMPACT_WIFI
+    default BOARD_TYPE_YUNLIAO_S3
     help
         Board type. 开发板类型
     config BOARD_TYPE_YUNLIAO_C3
@@ -33,6 +33,8 @@ choice BOARD_TYPE
         depends on IDF_TARGET_ESP32C3
     config BOARD_TYPE_YUNLIAO_S3
         bool "小智云聊S3"
+        select LV_USE_GIF
+        select LV_GIF_CACHE_DECODE_DATA
         depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_BREAD_COMPACT_WIFI
         bool "面包板新版接线（WiFi）"

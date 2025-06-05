@@ -10,13 +10,25 @@
 #include "board.h"
 #include <string.h>
 #include "gb2big.h"
+#include "config.h"
+
 
 #define TAG "YunliaoDisplay"
 
+LV_IMG_DECLARE(school11);
+LV_IMG_DECLARE(school12);
+LV_IMG_DECLARE(school21);
+LV_IMG_DECLARE(school22);
 LV_FONT_DECLARE(font_awesome_30_4);
 
 constexpr char CONSOLE_URL[] = "https://xiaozhi.me/console";
 constexpr char WIFI_URL[] = "https://iot.espressif.cn/configWXDeviceWiFi.html";
+
+static void GifTimerCallback(TimerHandle_t xTimer) {
+    ESP_LOGI(TAG, "GifTimerCallback");
+    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(Board::GetInstance().GetDisplay());
+    lcd_display->DelGifPage();
+}
 
 XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
     esp_lcd_panel_io_handle_t panel_io,
@@ -35,7 +47,11 @@ XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
                 swap_xy,
                 fonts){
         SetupUI();
-        SetLogo(Lang::Strings::LOGO);
+        if(CUSTOM_EMOTION_STYLE == 1){
+            SetLogo(Lang::Strings::LOGO1);
+        }else{
+            SetLogo(Lang::Strings::LOGO2);
+        }
 }
 
 #if CONFIG_USE_WECHAT_MESSAGE_STYLE
@@ -647,10 +663,25 @@ void XiaoziyunliaoDisplay::NewChatPage() {
             emotion_label_ = nullptr;
         }
     } else {
+        emotion_gif = lv_image_create(content_);
+        lv_obj_set_size(emotion_gif, LV_HOR_RES, LV_VER_RES);
+        lv_obj_set_style_border_width(emotion_gif, 0, 0);
+        lv_obj_set_style_bg_opa(emotion_gif, LV_OPA_TRANSP, 0);
+        lv_obj_center(emotion_gif);
+        if(CUSTOM_EMOTION_STYLE == 1){
+            lv_image_set_src(emotion_gif, &school11);
+        }else{
+            lv_image_set_src(emotion_gif, &school21);
+        }
+        gif_timer_ = xTimerCreate("GifTimer", pdMS_TO_TICKS(3000), pdFALSE, this, GifTimerCallback);
+        xTimerStart(gif_timer_, 0);
+        ESP_LOGI(TAG, "GifTimer created");
+
         // 创建表情标签
         emotion_label_ = lv_label_create(content_);
         lv_obj_set_style_text_font(emotion_label_, &font_awesome_30_4, 0);
         lv_label_set_text(emotion_label_, FONT_AWESOME_AI_CHIP);
+        lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         
         if (console_qrcode_) {
             lv_obj_del(console_qrcode_);
@@ -664,6 +695,7 @@ void XiaoziyunliaoDisplay::NewChatPage() {
     lv_obj_set_width(chat_message_label_, LV_HOR_RES * 0.9);
     lv_label_set_long_mode(chat_message_label_, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_align(chat_message_label_, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_add_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
 }
 void XiaoziyunliaoDisplay::SetStatus(const char* status) {
     DisplayLockGuard lock(this);
@@ -691,6 +723,9 @@ void XiaoziyunliaoDisplay::SwitchPage(std::optional<PageIndex> target) {
         DelConfigPage();
         ShowChatPage();
     } else {
+        if(emotion_gif){
+            return;
+        }
         HideChatPage();
         NewConfigPage();
     }
@@ -702,7 +737,8 @@ void XiaoziyunliaoDisplay::SwitchPage(std::optional<PageIndex> target) {
 void XiaoziyunliaoDisplay::NewSmartConfigPage() {
     DisplayLockGuard lock(this);
     DelConfigPage();
-    ShowChatPage();
+    // ShowChatPage();
+    DelGifPage();
     if (emotion_label_) {
         lv_obj_add_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
     }
@@ -715,6 +751,21 @@ void XiaoziyunliaoDisplay::NewSmartConfigPage() {
         lv_qrcode_update(smartconfig_qrcode_, WIFI_URL, strlen(WIFI_URL));
     }
 #endif
+}
+
+void XiaoziyunliaoDisplay::DelGifPage() {
+    ESP_LOGI(TAG, "DelGifPage");
+    DisplayLockGuard lock(this);
+    if(emotion_gif){
+        lv_obj_del(emotion_gif);
+        emotion_gif = nullptr;
+    }
+    if(gif_timer_){
+        xTimerStop(gif_timer_, 0);
+        xTimerDelete(gif_timer_, 0);
+        gif_timer_ = nullptr;
+    }
+    ShowChatPage();
 }
 
 void XiaoziyunliaoDisplay::HideSmartConfigPage() {
