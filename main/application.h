@@ -25,6 +25,7 @@
 #include "boards/xiaozhiyunliao-c3/AlarmClock.h"
 #endif
 #include "wake_word.h"
+#include "audio_debugger.h"
 
 #define SCHEDULE_EVENT (1 << 0)
 #define SEND_AUDIO_EVENT (1 << 1)
@@ -117,6 +118,7 @@ private:
 
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;
+    std::unique_ptr<AudioDebugger> audio_debugger_;
     Ota ota_;
     std::mutex mutex_;
     std::list<std::function<void()>> main_tasks_;
