@@ -893,7 +893,6 @@ void LcdDisplay::SetEmotion(const char* emotion) {
         lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
-#endif
 }
 
 void LcdDisplay::SetIcon(const char* icon) {
@@ -909,7 +908,6 @@ void LcdDisplay::SetIcon(const char* icon) {
         lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(preview_image_, LV_OBJ_FLAG_HIDDEN);
     }
-#endif
 }
 
 void LcdDisplay::SetTheme(const std::string& theme_name) {
