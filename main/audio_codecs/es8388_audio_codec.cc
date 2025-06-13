@@ -176,17 +176,21 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
         ESP_ERROR_CHECK(esp_codec_dev_open(output_dev_, &fs));
         ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
 
-        // Set analog output volume to 0dB, default is -45dB
-        uint8_t reg_val = 30; // 0dB
-        uint8_t regs[] = { 46, 47, 48, 49 }; // HP_LVOL, HP_RVOL, SPK_LVOL, SPK_RVOL
-        for (uint8_t reg : regs) {
-            out_ctrl_if_->write_reg(out_ctrl_if_, reg, 1, &reg_val, 1);
-        }
-
         if (pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 1);
         }
+
+        // uint8_t reg_val = 30; // 0dB 11110
+        // uint8_t regs[] = { 46, 47, 48, 49 }; // LOUT1_VOL, ROUT1_VOL, LOUT2_VOL, ROUT2_VOL
+        // for (uint8_t reg : regs) {
+        //     out_ctrl_if_->write_reg(out_ctrl_if_, reg, 1, &reg_val, 1);
+        // }
+        uint8_t reg_val = 33; // 4.5dB 100001,0dB 11110
+        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL
     } else {
+        uint8_t reg_val = 0; // -45dB 000000
+        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL
+        
         ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
         if (pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 0);
