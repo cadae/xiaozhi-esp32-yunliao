@@ -18,6 +18,14 @@
 #include <assets/lang_config.h>
 #include "mcp_tools.h"
 
+// 检查是否有AAF文件存在来决定使用哪种显示方式
+#if __has_include("display/emoji_display.h")
+    #include "display/emoji_display.h"
+    #define USE_EMOJI_DISPLAY 1
+#else
+    #define USE_EMOJI_DISPLAY 0
+#endif
+
 #define TAG "YunliaoS3"
 
 #if CONFIG_LCD_CONTROLLER_ILI9341
@@ -170,6 +178,33 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
     esp_lcd_panel_invert_color(panel, DISPLAY_INVERT_COLOR);
     esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY);
     esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
+
+#if USE_EMOJI_DISPLAY
+    // draw white
+    std::vector<uint16_t> buffer(DISPLAY_WIDTH, 0xFFFF);
+    for (int y = 0; y < DISPLAY_HEIGHT; y++) {
+        esp_lcd_panel_draw_bitmap(panel, 0, y, DISPLAY_WIDTH, y + 1, buffer.data());
+    }
+
+    // Set the display to on
+    ESP_LOGI(TAG, "Turning display on");
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
+
+    // 创建EmojiWidget
+    ESP_LOGI(TAG, "Creating EmojiWidget with AAF animation support");
+    display_ = new anim::EmojiWidget(panel, panel_io, DISPLAY_WIDTH, DISPLAY_HEIGHT, 
+    {
+        .text_font = &font_puhui_20_4,
+        .icon_font = &font_awesome_20_4,
+    #if CONFIG_USE_WECHAT_MESSAGE_STYLE
+        .emoji_font = font_emoji_32_init(),
+    #else
+        .emoji_font = font_emoji_64_init(),
+    #endif
+    }, true, true);  // false = 不显示状态栏
+    ESP_LOGI(TAG, "EmojiWidget created with screen size %dx%d", DISPLAY_WIDTH, DISPLAY_HEIGHT);
+
+#else
     display_ = new XiaoziyunliaoDisplay(
         panel_io,
         panel, 
@@ -185,12 +220,13 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
         {                
             .text_font = &FONT,
             .icon_font = &font_awesome_20_4,
-#if CONFIG_USE_WECHAT_MESSAGE_STYLE
+    #if CONFIG_USE_WECHAT_MESSAGE_STYLE
             .emoji_font = font_emoji_32_init(),
-#else
+    #else
             .emoji_font = font_emoji_64_init(),
-#endif
+    #endif
         });
+#endif
         std::string helpMessage = Lang::Strings::HELP4;
          helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP1;
@@ -234,17 +270,17 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     boot_button_.OnLongPress([this]() {
         ESP_LOGI(TAG, "Button LongPress to Sleep");
         display_->SetStatus(Lang::Strings::SHUTTING_DOWN);
-        display_->HideChatPage();
-        display_->HideSmartConfigPage();
-        display_->DelConfigPage();
+        // display_->HideChatPage();
+        // display_->HideSmartConfigPage();
+        // display_->DelConfigPage();
         vTaskDelay(pdMS_TO_TICKS(2000));
         Sleep();
     });    
     boot_button_.OnDoubleClick([this]() {
         // ESP_LOGI(TAG, "Button OnDoubleClick");
-        if (display_ && !wifi_config_mode_) {
-            display_->SwitchPage();
-        }
+        // if (display_ && !wifi_config_mode_) {
+        //     display_->SwitchPage();
+        // }
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
@@ -252,9 +288,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });  
     boot_button_.OnFourClick([this]() {
         ESP_LOGI(TAG, "Button OnFourClick");
-        if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            ClearWifiConfiguration();
-        }
+        // if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
+        //     ClearWifiConfiguration();
+        // }
         if (GetWifiConfigMode()) {
             SetFactoryWifiConfiguration();
         }

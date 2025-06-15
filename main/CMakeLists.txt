@@ -209,6 +209,21 @@ file(GLOB BOARD_SOURCES
 )
 list(APPEND SOURCES ${BOARD_SOURCES})
 
+# 添加AAF动画支持的文件
+if(CONFIG_BOARD_TYPE_ESP_HI OR CONFIG_BOARD_TYPE_LICHUANG_DEV OR CONFIG_BOARD_TYPE_YUNLIAO_S3)
+    # 检查是否有AAF文件存在
+    set(LOCAL_AAF_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/aaf")
+    file(GLOB AAF_FILES "${LOCAL_AAF_DIR}/*.aaf")
+    list(LENGTH AAF_FILES AAF_COUNT)
+    
+    if(AAF_COUNT GREATER 0)
+        message(STATUS "Found ${AAF_COUNT} AAF files, enabling emoji display support")
+        list(APPEND SOURCES "display/emoji_display.cc")
+    else()
+        message(WARNING "No AAF files found, emoji display support disabled")
+    endif()
+endif()
+
 if(CONFIG_USE_AUDIO_PROCESSOR)
     list(APPEND SOURCES "audio_processing/afe_audio_processor.cc")
 else()
@@ -285,45 +300,52 @@ add_custom_target(lang_header ALL
     DEPENDS ${LANG_HEADER}
 )
 
-if(CONFIG_BOARD_TYPE_ESP_HI)
-set(URL "https://github.com/espressif2022/image_player/raw/main/test_apps/test_8bit")
+if(CONFIG_BOARD_TYPE_ESP_HI OR CONFIG_BOARD_TYPE_LICHUANG_DEV OR CONFIG_BOARD_TYPE_YUNLIAO_S3)
+# 注释掉网络下载，改为从本地目录复制
+# set(URL "https://github.com/espressif2022/image_player/raw/main/test_apps/test_8bit")
 set(SPIFFS_DIR "${CMAKE_BINARY_DIR}/emoji")
+set(LOCAL_AAF_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/aaf")
 file(MAKE_DIRECTORY ${SPIFFS_DIR})
 
-# List all files to download
-set(FILES_TO_DOWNLOAD "")
-list(APPEND FILES_TO_DOWNLOAD "Anger_enter.aaf" "Anger_loop.aaf" "Anger_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "happy_enter.aaf" "happy_loop.aaf" "happ_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "sad_enter.aaf" "sad_loop.aaf" "sad_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "scorn_enter.aaf" "scorn_loop.aaf" "scorn_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "left_enter.aaf" "left_loop.aaf" "left_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "right_enter.aaf" "right_loop.aaf" "right_return.aaf")
-list(APPEND FILES_TO_DOWNLOAD "asking.aaf" "blink_once.aaf" "blink_quick.aaf")
-list(APPEND FILES_TO_DOWNLOAD "connecting.aaf" "panic_enter.aaf" "panic_loop.aaf")
-list(APPEND FILES_TO_DOWNLOAD "panic_return.aaf" "wake.aaf")
+# List all files to copy from local directory
+set(FILES_TO_COPY "")
+list(APPEND FILES_TO_COPY "Anger_enter.aaf" "Anger_loop.aaf" "Anger_return.aaf")
+list(APPEND FILES_TO_COPY "happy_enter.aaf" "happy_loop.aaf" "happ_return.aaf")
+list(APPEND FILES_TO_COPY "sad_enter.aaf" "sad_loop.aaf" "sad_return.aaf")
+list(APPEND FILES_TO_COPY "scorn_enter.aaf" "scorn_loop.aaf" "scorn_return.aaf")
+list(APPEND FILES_TO_COPY "left_enter.aaf" "left_loop.aaf" "left_return.aaf")
+list(APPEND FILES_TO_COPY "right_enter.aaf" "right_loop.aaf" "right_return.aaf")
+list(APPEND FILES_TO_COPY "asking.aaf" "blink_once.aaf" "blink_quick.aaf")
+list(APPEND FILES_TO_COPY "connecting.aaf" "panic_enter.aaf" "panic_loop.aaf")
+list(APPEND FILES_TO_COPY "panic_return.aaf" "wake.aaf")
 
-foreach(FILENAME IN LISTS FILES_TO_DOWNLOAD)
-    set(REMOTE_FILE "${URL}/${FILENAME}")
-    set(LOCAL_FILE "${SPIFFS_DIR}/${FILENAME}")
+set(AAF_FILES_FOUND FALSE)
+foreach(FILENAME IN LISTS FILES_TO_COPY)
+    set(SOURCE_FILE "${LOCAL_AAF_DIR}/${FILENAME}")
+    set(DEST_FILE "${SPIFFS_DIR}/${FILENAME}")
     
-    # 检查本地文件是否存在
-    if(EXISTS ${LOCAL_FILE})
-        message(STATUS "File ${FILENAME} already exists, skipping download")
+    # 检查本地源文件是否存在
+    if(EXISTS ${SOURCE_FILE})
+        message(STATUS "Copying ${FILENAME} from local directory")
+        file(COPY ${SOURCE_FILE} DESTINATION ${SPIFFS_DIR})
+        set(AAF_FILES_FOUND TRUE)
     else()
-        message(STATUS "Downloading ${FILENAME}")
-        file(DOWNLOAD ${REMOTE_FILE} ${LOCAL_FILE}
-             STATUS DOWNLOAD_STATUS)
-        list(GET DOWNLOAD_STATUS 0 STATUS_CODE)
-        if(NOT STATUS_CODE EQUAL 0)
-            message(FATAL_ERROR "Failed to download ${FILENAME} from ${URL}")
-        endif()
+        message(WARNING "Local file ${SOURCE_FILE} not found! Please download and place it in ${LOCAL_AAF_DIR}")
     endif()
 endforeach()
 
-spiffs_create_partition_assets(
-    assets_A
-    ${SPIFFS_DIR}
-    FLASH_IN_PROJECT
-    MMAP_FILE_SUPPORT_FORMAT ".aaf"
-)
+# 只有在找到AAF文件时才创建SPIFFS分区
+if(AAF_FILES_FOUND)
+    message(STATUS "Creating SPIFFS partition for AAF files")
+    spiffs_create_partition_assets(
+        assets_A
+        ${SPIFFS_DIR}
+        FLASH_IN_PROJECT
+        MMAP_FILE_SUPPORT_FORMAT ".aaf"
+    )
+else()
+    message(WARNING "No AAF files found, skipping SPIFFS partition creation")
+    message(WARNING "AAF animation features will not work until files are downloaded")
+endif()
+
 endif()
