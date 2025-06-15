@@ -68,6 +68,6 @@
 #define DISPLAY_OFFSET_Y  0
 #define KEY_EXPIRE_MS   800
 
-#define CUSTOM_EMOTION_STYLE 1
+#define CUSTOM_EMOTION_STYLE 2
 
 #endif // _BOARD_CONFIG_H_
