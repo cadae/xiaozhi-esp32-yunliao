@@ -25,6 +25,7 @@
 #include "boards/xiaozhiyunliao-c3/AlarmClock.h"
 #endif
 #include "wake_word.h"
+#include "audio_debugger.h"
 
 #define SCHEDULE_EVENT (1 << 0)
 #define SEND_AUDIO_EVENT (1 << 1)
@@ -55,6 +56,7 @@ enum DeviceState {
     kDeviceStateSpeaking,
     kDeviceStateUpgrading,
     kDeviceStateActivating,
+    kDeviceStateAudioTesting,
 #if CONFIG_USE_ALARM
     kDeviceStateAlarm,
 #endif
@@ -66,6 +68,7 @@ enum DeviceState {
 
 #define OPUS_FRAME_DURATION_MS 60
 #define MAX_AUDIO_PACKETS_IN_QUEUE (2400 / OPUS_FRAME_DURATION_MS)
+#define AUDIO_TESTING_MAX_DURATION_MS 10000
 
 class Application {
 public:
@@ -117,6 +120,7 @@ private:
 
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;
+    std::unique_ptr<AudioDebugger> audio_debugger_;
     Ota ota_;
     std::mutex mutex_;
     std::list<std::function<void()>> main_tasks_;
@@ -143,6 +147,7 @@ private:
     std::list<AudioStreamPacket> audio_decode_queue_;
 #endif
     std::condition_variable audio_decode_cv_;
+    std::list<AudioStreamPacket> audio_testing_queue_;
 
     // 新增：用于维护音频包的timestamp队列
     std::list<uint32_t> timestamp_queue_;
@@ -171,6 +176,8 @@ private:
     void OnClockTimer();
     void SetListeningMode(ListeningMode mode);
     void AudioLoop();
+    void EnterAudioTestingMode();
+    void ExitAudioTestingMode();
 };
 
 #endif // _APPLICATION_H_
