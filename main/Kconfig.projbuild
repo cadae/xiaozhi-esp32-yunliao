@@ -2,14 +2,14 @@ menu "Xiaozhi Assistant"
 
 config OTA_URL
     string "Default OTA URL"
-    default "https://api.tenclass.net/xiaozhi/ota/"
+    default "https://www.hehekaka.net/xiaozhi/ota/"
     help
         The application will access this URL to check for new firmwares and server address.
 
 
 choice
     prompt "Default Language"
-    default LANGUAGE_ZH_CN
+    default LANGUAGE_JA_JP
     help
         Select device display language
 
@@ -395,7 +395,7 @@ config USE_AUDIO_PROCESSOR
 
 config USE_DEVICE_AEC
     bool "Enable Device-Side AEC"
-    default n
+    default y
         depends on USE_AUDIO_PROCESSOR && (BOARD_TYPE_ESP_BOX_3 || BOARD_TYPE_ESP_BOX || BOARD_TYPE_ESP_BOX_LITE || BOARD_TYPE_LICHUANG_DEV || BOARD_TYPE_ESP32S3_KORVO2_V3 || BOARD_TYPE_ESP32S3_Touch_AMOLED_1_75 || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_4B || BOARD_TYPE_ESP32P4_WIFI6_Touch_LCD_XC || BOARD_TYPE_YUNLIAO_S3)
     help
         因为性能不够，不建议和微信聊天界面风格同时开启
