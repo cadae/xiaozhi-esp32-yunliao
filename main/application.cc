@@ -1122,6 +1122,18 @@ void Application::SetDeviceState(DeviceState state) {
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
+
+#if CONFIG_USE_MUSIC    
+   // 当从idle状态变成其他任何状态时，停止音乐播放
+    if (previous_state == kDeviceStateIdle && state != kDeviceStateIdle) {
+        auto music = board.GetMusic();
+        if (music) {
+            ESP_LOGI(TAG, "Stopping music streaming due to state change: %s -> %s", 
+                    STATE_STRINGS[previous_state], STATE_STRINGS[state]);
+            music->StopStreaming();
+        }
+    }
+#endif
     switch (state) {
         case kDeviceStateUnknown:
         case kDeviceStateIdle:

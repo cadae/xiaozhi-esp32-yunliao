@@ -10,6 +10,9 @@
 #include "led/led.h"
 #include "backlight.h"
 #include "camera.h"
+#if CONFIG_USE_MUSIC
+#include "music.h"
+#endif
 
 void* create_board();
 class AudioCodec;
@@ -25,14 +28,21 @@ protected:
 
     // 软件生成的设备唯一标识
     std::string uuid_;
-
+#if CONFIG_USE_MUSIC
+    // 音乐播放器实例
+    Music* music_;
+#endif
 public:
     static Board& GetInstance() {
         static Board* instance = static_cast<Board*>(create_board());
         return *instance;
     }
-
+#if CONFIG_USE_MUSIC
+    virtual ~Board();  // 改为非默认析构函数，用于清理 music_
+#else
     virtual ~Board() = default;
+#endif
+
     virtual std::string GetBoardType() = 0;
     virtual std::string GetUuid() { return uuid_; }
     virtual Backlight* GetBacklight() { return nullptr; }
@@ -41,6 +51,9 @@ public:
     virtual bool GetTemperature(float& esp32temp);
     virtual Display* GetDisplay();
     virtual Camera* GetCamera();
+#if CONFIG_USE_MUSIC
+    virtual Music* GetMusic();
+#endif
     virtual Http* CreateHttp() = 0;
     virtual WebSocket* CreateWebSocket() = 0;
     virtual Mqtt* CreateMqtt() = 0;
