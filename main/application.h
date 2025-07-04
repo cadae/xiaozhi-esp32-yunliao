@@ -99,7 +99,6 @@ public:
     void SendMcpMessage(const std::string& payload);
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
-    Ota& getOta() { return ota_; }
 #if CONFIG_USE_ALARM
     AlarmManager* alarm_m_ = nullptr;
     std::list<std::vector<uint8_t>> audio_decode_queue_;
@@ -113,8 +112,10 @@ public:
     Protocol* GetProtocol() { return protocol_.get(); }
 #endif
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
+#if CONFIG_USE_MUSIC
     // 新增：接收外部音频数据（如音乐播放）
     void AddAudioData(AudioStreamPacket&& packet);
+#endif
 
 private:
     Application();

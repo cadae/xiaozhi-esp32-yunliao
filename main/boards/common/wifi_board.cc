@@ -266,7 +266,7 @@ std::string WifiBoard::GetDeviceStatusJson() {
         auto chip = cJSON_CreateObject();
         // cJSON_AddNumberToObject(chip, "temperature", esp32temp);
         cJSON_AddStringToObject(chip, "hardware_version", board.GetHardwareVersion().c_str());
-        cJSON_AddStringToObject(chip, "version", Application::GetInstance().getOta().GetCurrentVersion().c_str());
+        cJSON_AddStringToObject(chip, "version", Ota::GetCurrentVersion().c_str());
         cJSON_AddNumberToObject(chip, "chip_flash_size", SystemInfo::GetFlashSize() / 1024 / 1024);
         cJSON_AddStringToObject(chip, "chip_model", SystemInfo::GetChipModelName().c_str());
         cJSON_AddItemToObject(root, "chip", chip);

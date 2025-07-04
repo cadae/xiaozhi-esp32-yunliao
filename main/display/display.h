@@ -32,6 +32,9 @@ public:
 
     inline int width() const { return width_; }
     inline int height() const { return height_; }
+#if CONFIG_USE_MUSIC
+    virtual void SetMusicInfo(const char* song_name);
+#endif
 
 protected:
     int width_ = 0;

@@ -21,17 +21,17 @@ private:
     TimerMode timer_mode_; 
     static constexpr int MAX_CHECK_COUNT = 100; // 5秒 / 100ms = 50次检查
 
-    std::string GetFirmwareVersion() const {
-        return Application::GetInstance().getOta().GetFirmwareVersion();
-    }
+    // std::string GetFirmwareVersion() const {
+    //     return Application::GetInstance().getOta().GetFirmwareVersion();
+    // }
 
-    std::string GetCurrentVersion() const {
-        return Application::GetInstance().getOta().GetCurrentVersion();
-    }
+    // std::string GetCurrentVersion() const {
+    //     return Application::GetInstance().getOta().GetCurrentVersion();
+    // }
 
-    bool HasNewVersion() const {
-        return Application::GetInstance().getOta().HasNewVersion();
-    }
+    // bool HasNewVersion() const {
+    //     return Application::GetInstance().getOta().HasNewVersion();
+    // }
 
     static void SleepTimerCallback(TimerHandle_t xTimer) {
         BoardControl* instance = static_cast<BoardControl*>(pvTimerGetTimerID(xTimer));
@@ -106,8 +106,8 @@ public:
         // properties_.AddStringProperty("FirmwareVersion", "最新固件版本", 
         //     [this]() -> std::string { return GetFirmwareVersion(); });
 
-        properties_.AddStringProperty("CurrentVersion", "当前固件版本",
-            [this]() -> std::string { return GetCurrentVersion(); });
+        // properties_.AddStringProperty("CurrentVersion", "当前固件版本",
+        //     [this]() -> std::string { return GetCurrentVersion(); });
 
         // properties_.AddBooleanProperty("HasNewVersion", "是否有新固件版本",
         //     [this]() -> bool { return HasNewVersion(); });
