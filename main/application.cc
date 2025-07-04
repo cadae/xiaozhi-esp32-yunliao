@@ -25,9 +25,6 @@
 #else
 #include "no_wake_word.h"
 #endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-#include "music_service.h"
-#endif
 
 #include <cstring>
 #include <esp_log.h>
@@ -35,28 +32,6 @@
 #include <driver/gpio.h>
 #include <arpa/inet.h>
 #define TAG "Application"
-
-#if CONFIG_ENABLE_MUSIC_PLAYER
-std::string UrlEncode(const std::string& str) {
-    std::string result;
-    result.reserve(str.size() * 3);
-    
-    for (char c : str) {
-        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-            result += c;
-        } else if (c == ' ') {
-            result += '+';
-        } else {
-            result += '%';
-            char buf[3];
-            snprintf(buf, sizeof(buf), "%02X", (unsigned char)c);
-            result += buf;
-        }
-    }
-    
-    return result;
-}
-#endif
 
 static const char* const STATE_STRINGS[] = {
     "unknown",
@@ -71,9 +46,6 @@ static const char* const STATE_STRINGS[] = {
     "audio_testing",
 #if CONFIG_USE_ALARM
     "alarm",
-#endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    "music_playing",
 #endif
     "fatal_error",
     "invalid_state"
@@ -116,27 +88,9 @@ Application::Application() {
         .skip_unhandled_events = true
     };
     esp_timer_create(&clock_timer_args, &clock_timer_handle_);
-
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    music_service_ = std::make_unique<MusicService>();
-    if (music_service_) {
-        music_service_->Initialize();
-    } else {
-        ESP_LOGE(TAG, "音乐服务初始化失败");
-    }
-#endif
 }
 
 Application::~Application() {
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    if (music_service_) {
-        if (music_service_->IsPlaying()) {
-            music_service_->Stop();
-        }
-        music_service_.reset();
-    }
-#endif
-
     if (clock_timer_handle_ != nullptr) {
         esp_timer_stop(clock_timer_handle_);
         esp_timer_delete(clock_timer_handle_);
@@ -395,24 +349,6 @@ void Application::ToggleChatState() {
         });
     }
 #endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    else if (device_state_ == kDeviceStateMusicPlaying) {
-        RequestMusicInterrupt();
-        Schedule([this]() {
-            if (music_service_ && music_service_->IsPlaying()) {
-                music_service_->Stop();
-            }
-            ReleaseAudioState(AUDIO_STATE_MUSIC);
-            if (!protocol_->IsAudioChannelOpened()) {
-                SetDeviceState(kDeviceStateConnecting);
-                if (!protocol_->OpenAudioChannel()) {
-                    return;
-                }
-            }
-            SetListeningMode(realtime_chat_enabled_ ? kListeningModeRealtime : kListeningModeAutoStop);
-        });
-    }
-#endif
 }
 
 void Application::StartListening() {
@@ -622,9 +558,6 @@ void Application::Start() {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
-#if CONFIG_ENABLE_MUSIC_PLAYER
-                    HandleVoiceCommand(message);
-#endif
                 });
             }
         } else if (strcmp(type->valuestring, "llm") == 0) {
@@ -634,9 +567,6 @@ void Application::Start() {
                     display->SetEmotion(emotion_str.c_str());
                 });
             }
-#if CONFIG_ENABLE_MUSIC_PLAYER
-            HandleLLMInstruction(root);
-#endif
 #if CONFIG_IOT_PROTOCOL_MCP
         } else if (strcmp(type->valuestring, "mcp") == 0) {
             auto payload = cJSON_GetObjectItem(root, "payload");
@@ -1195,21 +1125,9 @@ void Application::SetDeviceState(DeviceState state) {
             ResetDecoder();
             auto codec = board.GetAudioCodec();
             codec->EnableOutput(true);
-#if CONFIG_USE_AUDIO_PROCESSING
+    #if CONFIG_USE_AUDIO_PROCESSING
             audio_processor_->Stop();
-#endif
-            break;
-#endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-        case kDeviceStateMusicPlaying:
-            display->SetStatus(Lang::Strings::MUSIC);
-            display->SetIcon(FONT_AWESOME_MUSIC);
-#if CONFIG_USE_AUDIO_PROCESSOR
-            audio_processor_->Stop();
-#endif
-#if CONFIG_USE_WAKE_WORD_DETECT
-            wake_word_detect_.StartDetection();
-#endif
+    #endif
             break;
 #endif
         default:
@@ -1335,172 +1253,6 @@ void Application::SetAecMode(AecMode mode) {
         }
     });
 }
-
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    bool Application::RequestAudioState(unsigned int state) {
-        std::lock_guard<std::mutex> lock(audio_state_mutex_);
-        if ((audio_state_ & state) != 0) {
-            return false;
-        }
-        if (state == AUDIO_STATE_MUSIC && (audio_state_ & (AUDIO_STATE_LISTENING | AUDIO_STATE_SPEAKING))) {
-            AbortSpeaking(kAbortReasonPlayMusic);
-            audio_state_mutex_.unlock();
-            vTaskDelay(pdMS_TO_TICKS(50));
-            audio_state_mutex_.lock();
-        }
-        audio_state_ |= state;
-        return true;
-    }
-
-    void Application::ReleaseAudioState(unsigned int state) {
-        std::lock_guard<std::mutex> lock(audio_state_mutex_);
-        audio_state_ &= ~state;
-    }
-
-    bool Application::ForceResetAudioHardware() {
-        auto& board = Board::GetInstance();
-        auto codec = board.GetAudioCodec();
-        if (!codec) {
-            ESP_LOGE(TAG, "无法获取音频解码器");
-            return false;
-        }
-        codec->EnableInput(false);
-        codec->EnableOutput(false);
-        vTaskDelay(pdMS_TO_TICKS(20));
-        codec->EnableOutput(true);
-        if (device_state_ == kDeviceStateListening) {
-            codec->EnableInput(true);
-        }
-        return true;
-    }
-
-    void Application::HandleVoiceCommand(const std::string& message) {
-        std::string lower_message = message;
-        std::transform(lower_message.begin(), lower_message.end(), lower_message.begin(), 
-            [](unsigned char c){ return std::tolower(c); });
-        
-        const std::vector<std::pair<std::string, size_t>> music_triggers = {
-            {"播放", 6}, {"来一首", 9}, {"我想听", 9}, 
-            {"放一首", 9}, {"唱一首", 9}, {"给我放", 9}
-        };
-        
-        bool music_command = false;
-        std::string trigger_word;
-        size_t trigger_bytes = 0;
-        size_t pos = 0;
-        
-        while (pos < lower_message.length() && lower_message[pos] == ' ')
-            pos++;
-        
-        for (const auto& trigger : music_triggers) {
-            if (lower_message.compare(pos, trigger.first.length(), trigger.first) == 0) {
-                music_command = true;
-                trigger_word = trigger.first;
-                trigger_bytes = trigger.second;
-                break;
-            }
-        }
-        
-        if (!music_command)
-            return;
-            
-        const char* orig_msg = message.c_str();
-        const char* found = nullptr;
-        
-        for (const auto& trigger : music_triggers) {
-            const char* p = strstr(orig_msg, trigger.first.c_str());
-            if (p != nullptr) {
-                found = p + trigger.second;
-                break;
-            }
-        }
-        
-        if (found == nullptr || strlen(found) == 0)
-            return;
-            
-        std::string song_name = found;
-        
-        // 修复中文标点符号的比较
-        if (!song_name.empty() && song_name.back() == static_cast<char>(0xE3) && song_name.length() >= 3) {
-            // 检查是否为中文句号 '。' (UTF-8: E3 80 82)
-            if (song_name.length() >= 3 && 
-                static_cast<unsigned char>(song_name[song_name.length()-3]) == 0xE3 && 
-                static_cast<unsigned char>(song_name[song_name.length()-2]) == 0x80 && 
-                static_cast<unsigned char>(song_name[song_name.length()-1]) == 0x82) {
-                song_name.erase(song_name.length()-3, 3);
-            }
-        }
-        
-        if (song_name.empty())
-            return;
-        
-    #if CONFIG_ENABLE_MUSIC_PLAYER
-        if (!music_service_) {
-            ESP_LOGE(TAG, "音乐服务未初始化，无法播放: %s", song_name.c_str());
-            return;
-        }
-        
-        
-        RequestMusicInterrupt();
-        
-        if (music_service_->IsPlaying())
-            music_service_->Stop();
-        
-        RequestAudioState(AUDIO_STATE_MUSIC);
-        
-        if (protocol_) {
-            protocol_->CloseAudioChannel();
-        }
-        
-        SetDeviceState(kDeviceStateMusicPlaying);
-        
-        music_service_->PlaySong(song_name);
-    #else
-        ESP_LOGW(TAG, "音乐播放功能未启用");
-    #endif
-    }
-
-    void Application::HandleLLMInstruction(const cJSON* root) {
-        auto music_play = cJSON_GetObjectItem(root, "music_play");
-        if (music_play == NULL || !cJSON_IsString(music_play))
-            return;
-        
-        const char* song_name = music_play->valuestring;
-        if (song_name == NULL || strlen(song_name) == 0)
-            return;
-        
-        Schedule([this, song_name_str = std::string(song_name)]() {
-            if (!music_service_) {
-                ESP_LOGE(TAG, "音乐服务未初始化，无法播放: %s", song_name_str.c_str());
-                return;
-            }
-            
-            std::string cleaned_song_name = song_name_str;
-            //if (!cleaned_song_name.empty() && cleaned_song_name.back() == '。')
-            if (!cleaned_song_name.empty() && cleaned_song_name.size() >= 3 &&
-                static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 3]) == 0xE3 &&
-                static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 2]) == 0x80 &&
-                static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 1]) == 0x82) {
-                cleaned_song_name.erase(cleaned_song_name.size() - 3, 3);
-            }
-            
-            RequestMusicInterrupt();
-            
-            if (music_service_->IsPlaying())
-                music_service_->Stop();
-            
-            RequestAudioState(AUDIO_STATE_MUSIC);
-            
-            if (protocol_) {
-                protocol_->CloseAudioChannel();
-            }
-            
-            SetDeviceState(kDeviceStateMusicPlaying);
-            
-            music_service_->PlaySong(cleaned_song_name);
-        });
-    }
-#endif
 
 #if CONFIG_USE_MUSIC
     // 新增：接收外部音频数据（如音乐播放）
