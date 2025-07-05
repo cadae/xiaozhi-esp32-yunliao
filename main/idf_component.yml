@@ -78,10 +78,8 @@ dependencies:
   #   - if: target in [esp32c3]
   chmorgan/esp-libhelix-mp3:
     version: "*"
-    rules:
-    - if: target in [esp32s3]
 
   ## Required IDF version
-  idf:
-    version: '>=5.4.0'
-  espressif/adc_battery_estimation: =*
+  # idf:
+  #   version: '>=5.4.0'
+  # espressif/adc_battery_estimation: =*

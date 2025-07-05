@@ -19,6 +19,7 @@
 #include <freertos/task.h>
 
 #define TAG "Esp32Music"
+#if CONFIG_USE_MUSIC
 
 // URL编码函数
 static std::string url_encode(const std::string& str) {
@@ -1282,3 +1283,4 @@ void Esp32Music::UpdateLyricDisplay(int64_t current_time_ms) {
         }
     }
 }
+#endif

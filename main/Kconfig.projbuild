@@ -481,7 +481,7 @@ config USE_ALARM
 config USE_MUSIC
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用音乐播放器功能"
-    default n
+    default y
     help
         启用音乐播放器功能，允许播放在线音乐。需后台配置
 
