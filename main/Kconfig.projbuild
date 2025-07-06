@@ -67,6 +67,9 @@ choice BOARD_TYPE
     config BOARD_TYPE_ESP_HI
         bool "ESP-HI"
         depends on IDF_TARGET_ESP32C3
+    config BOARD_TYPE_ECHOEAR
+        bool "EchoEar"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_ESP_BOX_3
         bool "ESP BOX 3"
         depends on IDF_TARGET_ESP32S3
@@ -141,7 +144,7 @@ choice BOARD_TYPE
         depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_ATOMMATRIX_ECHO_BASE
         bool "AtomMatrix + Echo Base"
-        depends on IDF_TARGET_ESP32S3
+        depends on IDF_TARGET_ESP32
     config BOARD_TYPE_ESP32S3_Touch_AMOLED_1_8
         bool "Waveshare ESP32-S3-Touch-AMOLED-1.8"
         depends on IDF_TARGET_ESP32S3
@@ -278,6 +281,8 @@ choice BOARD_TYPE
         depends on IDF_TARGET_ESP32S3
         select LV_USE_GIF
         select LV_GIF_CACHE_DECODE_DATA
+    config BOARD_TYPE_JIUCHUAN
+        bool "九川智能"
 endchoice
 
 choice ESP_S3_LCD_EV_Board_Version_TYPE
@@ -473,12 +478,12 @@ config USE_ALARM
     help
         一个自定义的闹钟功能
 
-config ENABLE_MUSIC_PLAYER
+config USE_MUSIC
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用音乐播放器功能"
-    default n
+    default y
     help
-        启用音乐播放器功能，允许播放在线音乐。
+        启用音乐播放器功能，允许播放在线音乐。需后台配置
 
 config WIFI_FACTORY_SSID
     string "WiFi Factory SSID"

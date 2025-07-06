@@ -21,6 +21,7 @@
 
 #define TAG "Ota"
 
+std::string Ota::current_version_;
 
 Ota::Ota() {
 #ifdef ESP_EFUSE_BLOCK_USR_DATA

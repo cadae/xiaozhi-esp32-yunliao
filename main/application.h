@@ -37,15 +37,6 @@ enum AecMode {
     kAecOnServerSide,
 };
 
-#if CONFIG_ENABLE_MUSIC_PLAYER
-#define AUDIO_STATE_NONE        (0)
-#define AUDIO_STATE_LISTENING   (1 << 0)
-#define AUDIO_STATE_SPEAKING    (1 << 1)
-#define AUDIO_STATE_MUSIC       (1 << 2)
-
-class MusicService;
-#endif
-
 enum DeviceState {
     kDeviceStateUnknown,
     kDeviceStateStarting,
@@ -59,9 +50,6 @@ enum DeviceState {
     kDeviceStateAudioTesting,
 #if CONFIG_USE_ALARM
     kDeviceStateAlarm,
-#endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    kDeviceStateMusicPlaying,
 #endif
     kDeviceStateFatalError
 };
@@ -99,20 +87,15 @@ public:
     void SendMcpMessage(const std::string& payload);
     void SetAecMode(AecMode mode);
     AecMode GetAecMode() const { return aec_mode_; }
-    Ota& getOta() { return ota_; }
 #if CONFIG_USE_ALARM
     AlarmManager* alarm_m_ = nullptr;
     std::list<std::vector<uint8_t>> audio_decode_queue_;
 #endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    bool RequestAudioState(unsigned int state);
-    void ReleaseAudioState(unsigned int state);
-    bool ForceResetAudioHardware();
-    void HandleVoiceCommand(const std::string& message);
-    void HandleLLMInstruction(const cJSON* root);
-    Protocol* GetProtocol() { return protocol_.get(); }
-#endif
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
+#if CONFIG_USE_MUSIC
+    // 新增：接收外部音频数据（如音乐播放）
+    void AddAudioData(AudioStreamPacket&& packet);
+#endif
 
 private:
     Application();
@@ -121,7 +104,6 @@ private:
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioProcessor> audio_processor_;
     std::unique_ptr<AudioDebugger> audio_debugger_;
-    Ota ota_;
     std::mutex mutex_;
     std::list<std::function<void()>> main_tasks_;
     std::unique_ptr<Protocol> protocol_;
@@ -131,6 +113,7 @@ private:
     ListeningMode listening_mode_ = kListeningModeAutoStop;
     AecMode aec_mode_ = kAecOff;
 
+    bool has_server_time_ = false;
     bool aborted_ = false;
     bool voice_detected_ = false;
     bool busy_decoding_audio_ = false;
@@ -159,11 +142,6 @@ private:
     OpusResampler input_resampler_;
     OpusResampler reference_resampler_;
     OpusResampler output_resampler_;
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    unsigned int audio_state_ = AUDIO_STATE_NONE;// 音频状态管理
-    std::mutex audio_state_mutex_;
-    std::unique_ptr<MusicService> music_service_;
-#endif
 
     void MainEventLoop();
     void OnAudioInput();
@@ -171,8 +149,8 @@ private:
     bool ReadAudio(std::vector<int16_t>& data, int sample_rate, int samples);
     void ResetDecoder();
     void SetDecodeSampleRate(int sample_rate, int frame_duration);
-    void CheckNewVersion();
-    void ShowActivationCode();
+    void CheckNewVersion(Ota& ota);
+    void ShowActivationCode(const std::string& code, const std::string& message);
     void OnClockTimer();
     void SetListeningMode(ListeningMode mode);
     void AudioLoop();

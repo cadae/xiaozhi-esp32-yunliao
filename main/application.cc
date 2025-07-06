@@ -25,9 +25,6 @@
 #else
 #include "no_wake_word.h"
 #endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-#include "music_service.h"
-#endif
 
 #include <cstring>
 #include <esp_log.h>
@@ -35,28 +32,6 @@
 #include <driver/gpio.h>
 #include <arpa/inet.h>
 #define TAG "Application"
-
-#if CONFIG_ENABLE_MUSIC_PLAYER
-std::string UrlEncode(const std::string& str) {
-    std::string result;
-    result.reserve(str.size() * 3);
-    
-    for (char c : str) {
-        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-            result += c;
-        } else if (c == ' ') {
-            result += '+';
-        } else {
-            result += '%';
-            char buf[3];
-            snprintf(buf, sizeof(buf), "%02X", (unsigned char)c);
-            result += buf;
-        }
-    }
-    
-    return result;
-}
-#endif
 
 static const char* const STATE_STRINGS[] = {
     "unknown",
@@ -71,9 +46,6 @@ static const char* const STATE_STRINGS[] = {
     "audio_testing",
 #if CONFIG_USE_ALARM
     "alarm",
-#endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    "music_playing",
 #endif
     "fatal_error",
     "invalid_state"
@@ -116,27 +88,9 @@ Application::Application() {
         .skip_unhandled_events = true
     };
     esp_timer_create(&clock_timer_args, &clock_timer_handle_);
-
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    music_service_ = std::make_unique<MusicService>();
-    if (music_service_) {
-        music_service_->Initialize();
-    } else {
-        ESP_LOGE(TAG, "音乐服务初始化失败");
-    }
-#endif
 }
 
 Application::~Application() {
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    if (music_service_) {
-        if (music_service_->IsPlaying()) {
-            music_service_->Stop();
-        }
-        music_service_.reset();
-    }
-#endif
-
     if (clock_timer_handle_ != nullptr) {
         esp_timer_stop(clock_timer_handle_);
         esp_timer_delete(clock_timer_handle_);
@@ -147,7 +101,7 @@ Application::~Application() {
     vEventGroupDelete(event_group_);
 }
 
-void Application::CheckNewVersion() {
+void Application::CheckNewVersion(Ota& ota) {
     const int MAX_RETRY = 10;
     int retry_count = 0;
     int retry_delay = 10; // 初始重试延迟为10秒
@@ -157,7 +111,7 @@ void Application::CheckNewVersion() {
         auto display = Board::GetInstance().GetDisplay();
         display->SetStatus(Lang::Strings::CHECKING_NEW_VERSION);
 
-        if (!ota_.CheckVersion()) {
+        if (!ota.CheckVersion()) {
             retry_count++;
             if (retry_count >= MAX_RETRY) {
                 ESP_LOGE(TAG, "Too many retries, exit version check");
@@ -165,7 +119,7 @@ void Application::CheckNewVersion() {
             }
 
             char buffer[128];
-            snprintf(buffer, sizeof(buffer), Lang::Strings::CHECK_NEW_VERSION_FAILED, retry_delay, ota_.GetCheckVersionUrl().c_str());
+            snprintf(buffer, sizeof(buffer), Lang::Strings::CHECK_NEW_VERSION_FAILED, retry_delay, ota.GetCheckVersionUrl().c_str());
             Alert(Lang::Strings::ERROR, buffer, "sad", Lang::Sounds::P3_EXCLAMATION);
 
             ESP_LOGW(TAG, "Check new version failed, retry in %d seconds (%d/%d)", retry_delay, retry_count, MAX_RETRY);
@@ -181,7 +135,7 @@ void Application::CheckNewVersion() {
         retry_count = 0;
         retry_delay = 10; // 重置重试延迟时间
 
-        if (ota_.HasNewVersion()) {
+        if (ota.HasNewVersion()) {
             Alert(Lang::Strings::OTA_UPGRADE, Lang::Strings::UPGRADING, "happy", Lang::Sounds::P3_UPGRADE);
 
             vTaskDelay(pdMS_TO_TICKS(3000));
@@ -189,7 +143,7 @@ void Application::CheckNewVersion() {
             SetDeviceState(kDeviceStateUpgrading);
             
             display->SetIcon(FONT_AWESOME_DOWNLOAD);
-            std::string message = std::string(Lang::Strings::NEW_VERSION) + ota_.GetFirmwareVersion();
+            std::string message = std::string(Lang::Strings::NEW_VERSION) + ota.GetFirmwareVersion();
             display->SetChatMessage("system", message.c_str());
 
             auto& board = Board::GetInstance();
@@ -208,7 +162,7 @@ void Application::CheckNewVersion() {
             background_task_ = nullptr;
             vTaskDelay(pdMS_TO_TICKS(1000));
 
-            ota_.StartUpgrade([display](int progress, size_t speed) {
+            ota.StartUpgrade([display](int progress, size_t speed) {
                 char buffer[64];
                 snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
                 display->SetChatMessage("system", buffer);
@@ -223,8 +177,8 @@ void Application::CheckNewVersion() {
         }
 
         // No new version, mark the current version as valid
-        ota_.MarkCurrentVersionValid();
-        if (!ota_.HasActivationCode() && !ota_.HasActivationChallenge()) {
+        ota.MarkCurrentVersionValid();
+        if (!ota.HasActivationCode() && !ota.HasActivationChallenge()) {
             xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
             // Exit the loop if done checking new version
             break;
@@ -232,14 +186,14 @@ void Application::CheckNewVersion() {
 
         display->SetStatus(Lang::Strings::ACTIVATION);
         // Activation code is shown to the user and waiting for the user to input
-        if (ota_.HasActivationCode()) {
-            ShowActivationCode();
+        if (ota.HasActivationCode()) {
+            ShowActivationCode(ota.GetActivationCode(), ota.GetActivationMessage());
         }
 
         // This will block the loop until the activation is done or timeout
         for (int i = 0; i < 10; ++i) {
             ESP_LOGI(TAG, "Activating... %d/%d", i + 1, 10);
-            esp_err_t err = ota_.Activate();
+            esp_err_t err = ota.Activate();
             if (err == ESP_OK) {
                 xEventGroupSetBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT);
                 break;
@@ -255,10 +209,7 @@ void Application::CheckNewVersion() {
     }
 }
 
-void Application::ShowActivationCode() {
-    auto& message = ota_.GetActivationMessage();
-    auto& code = ota_.GetActivationCode();
-
+void Application::ShowActivationCode(const std::string& code, const std::string& message) {
     struct digit_sound {
         char digit;
         const std::string_view& sound;
@@ -398,24 +349,6 @@ void Application::ToggleChatState() {
         });
     }
 #endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    else if (device_state_ == kDeviceStateMusicPlaying) {
-        RequestMusicInterrupt();
-        Schedule([this]() {
-            if (music_service_ && music_service_->IsPlaying()) {
-                music_service_->Stop();
-            }
-            ReleaseAudioState(AUDIO_STATE_MUSIC);
-            if (!protocol_->IsAudioChannelOpened()) {
-                SetDeviceState(kDeviceStateConnecting);
-                if (!protocol_->OpenAudioChannel()) {
-                    return;
-                }
-            }
-            SetListeningMode(realtime_chat_enabled_ ? kListeningModeRealtime : kListeningModeAutoStop);
-        });
-    }
-#endif
 }
 
 void Application::StartListening() {
@@ -486,15 +419,18 @@ void Application::Start() {
     auto codec = board.GetAudioCodec();
     opus_decoder_ = std::make_unique<OpusDecoderWrapper>(codec->output_sample_rate(), 1, OPUS_FRAME_DURATION_MS);
     opus_encoder_ = std::make_unique<OpusEncoderWrapper>(16000, 1, OPUS_FRAME_DURATION_MS);
+    opus_encoder_->SetComplexity(0);
     if (aec_mode_ != kAecOff) {
         ESP_LOGI(TAG, "AEC mode: %d, setting opus encoder complexity to 0", aec_mode_);
         opus_encoder_->SetComplexity(0);
-    } else if (board.GetBoardType() == "ml307") {
-        ESP_LOGI(TAG, "ML307 board detected, setting opus encoder complexity to 5");
-        opus_encoder_->SetComplexity(5);
     } else {
-        ESP_LOGI(TAG, "WiFi board detected, setting opus encoder complexity to 0");
+#if CONFIG_USE_AUDIO_PROCESSOR
+        ESP_LOGI(TAG, "Audio processor detected, setting opus encoder complexity to 5");
+        opus_encoder_->SetComplexity(5);
+#else
+        ESP_LOGI(TAG, "Audio processor not detected, setting opus encoder complexity to 0");
         opus_encoder_->SetComplexity(0);
+#endif
     }
 
     if (codec->input_sample_rate() != 16000) {
@@ -527,7 +463,8 @@ void Application::Start() {
     display->UpdateStatusBar(true);
 
     // Check for new firmware version or get the MQTT broker address
-    CheckNewVersion();
+    Ota ota;
+    CheckNewVersion(ota);
 
     // Initialize the protocol
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
@@ -537,9 +474,9 @@ void Application::Start() {
     McpServer::GetInstance().AddCommonTools();
 #endif
 
-    if (ota_.HasMqttConfig()) {
+    if (ota.HasMqttConfig()) {
         protocol_ = std::make_unique<MqttProtocol>();
-    } else if (ota_.HasWebsocketConfig()) {
+    } else if (ota.HasWebsocketConfig()) {
         protocol_ = std::make_unique<WebsocketProtocol>();
     } else {
         ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
@@ -621,9 +558,6 @@ void Application::Start() {
                 ESP_LOGI(TAG, ">> %s", text->valuestring);
                 Schedule([this, display, message = std::string(text->valuestring)]() {
                     display->SetChatMessage("user", message.c_str());
-#if CONFIG_ENABLE_MUSIC_PLAYER
-                    HandleVoiceCommand(message);
-#endif
                 });
             }
         } else if (strcmp(type->valuestring, "llm") == 0) {
@@ -633,9 +567,6 @@ void Application::Start() {
                     display->SetEmotion(emotion_str.c_str());
                 });
             }
-#if CONFIG_ENABLE_MUSIC_PLAYER
-            HandleLLMInstruction(root);
-#endif
 #if CONFIG_IOT_PROTOCOL_MCP
         } else if (strcmp(type->valuestring, "mcp") == 0) {
             auto payload = cJSON_GetObjectItem(root, "payload");
@@ -815,8 +746,9 @@ void Application::Start() {
     xEventGroupWaitBits(event_group_, CHECK_NEW_VERSION_DONE_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
     SetDeviceState(kDeviceStateIdle);
 
+    has_server_time_ = ota.HasServerTime();
     if (protocol_started) {
-        std::string message = std::string(Lang::Strings::VERSION) + ota_.GetCurrentVersion();
+        std::string message = std::string(Lang::Strings::VERSION) + ota.GetCurrentVersion();
         display->ShowNotification(message.c_str());
         // display->SetChatMessage("system", "");
         // Play the success sound to indicate the device is ready
@@ -856,7 +788,7 @@ void Application::OnClockTimer() {
         SystemInfo::PrintHeapStats();
 
         // If we have synchronized server time, set the status to clock "HH:MM" if the device is idle
-        if (ota_.HasServerTime()) {
+        if (has_server_time_) {
             if (device_state_ == kDeviceStateIdle) {
                 Schedule([this]() {
                     // Set status to clock "HH:MM"
@@ -975,7 +907,7 @@ void Application::OnAudioOutput() {
     SetDecodeSampleRate(packet.sample_rate, packet.frame_duration);
 
     busy_decoding_audio_ = true;
-    background_task_->Schedule([this, codec, packet = std::move(packet)]() mutable {
+    if (!background_task_->Schedule([this, codec, packet = std::move(packet)]() mutable {
         busy_decoding_audio_ = false;
         if (aborted_) {
             return;
@@ -998,7 +930,9 @@ void Application::OnAudioOutput() {
         timestamp_queue_.push_back(packet.timestamp);
 #endif
         last_output_time_ = std::chrono::steady_clock::now();
-    });
+    })) {
+        busy_decoding_audio_ = false;
+    }
 }
 
 void Application::OnAudioInput() {
@@ -1123,6 +1057,18 @@ void Application::SetDeviceState(DeviceState state) {
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
+
+#if CONFIG_USE_MUSIC    
+   // 当从idle状态变成其他任何状态时，停止音乐播放
+    if (previous_state == kDeviceStateIdle && state != kDeviceStateIdle) {
+        auto music = board.GetMusic();
+        if (music) {
+            ESP_LOGI(TAG, "Stopping music streaming due to state change: %s -> %s", 
+                    STATE_STRINGS[previous_state], STATE_STRINGS[state]);
+            music->StopStreaming();
+        }
+    }
+#endif
     switch (state) {
         case kDeviceStateUnknown:
         case kDeviceStateIdle:
@@ -1179,21 +1125,9 @@ void Application::SetDeviceState(DeviceState state) {
             ResetDecoder();
             auto codec = board.GetAudioCodec();
             codec->EnableOutput(true);
-#if CONFIG_USE_AUDIO_PROCESSING
+    #if CONFIG_USE_AUDIO_PROCESSING
             audio_processor_->Stop();
-#endif
-            break;
-#endif
-#if CONFIG_ENABLE_MUSIC_PLAYER
-        case kDeviceStateMusicPlaying:
-            display->SetStatus(Lang::Strings::MUSIC);
-            display->SetIcon(FONT_AWESOME_MUSIC);
-#if CONFIG_USE_AUDIO_PROCESSOR
-            audio_processor_->Stop();
-#endif
-#if CONFIG_USE_WAKE_WORD_DETECT
-            wake_word_detect_.StartDetection();
-#endif
+    #endif
             break;
 #endif
         default:
@@ -1320,169 +1254,90 @@ void Application::SetAecMode(AecMode mode) {
     });
 }
 
-#if CONFIG_ENABLE_MUSIC_PLAYER
-bool Application::RequestAudioState(unsigned int state) {
-    std::lock_guard<std::mutex> lock(audio_state_mutex_);
-    if ((audio_state_ & state) != 0) {
-        return false;
-    }
-    if (state == AUDIO_STATE_MUSIC && (audio_state_ & (AUDIO_STATE_LISTENING | AUDIO_STATE_SPEAKING))) {
-        AbortSpeaking(kAbortReasonPlayMusic);
-        audio_state_mutex_.unlock();
-        vTaskDelay(pdMS_TO_TICKS(50));
-        audio_state_mutex_.lock();
-    }
-    audio_state_ |= state;
-    return true;
-}
+#if CONFIG_USE_MUSIC
+    // 新增：接收外部音频数据（如音乐播放）
+    void Application::AddAudioData(AudioStreamPacket&& packet) {
+        auto codec = Board::GetInstance().GetAudioCodec();
+        if (device_state_ == kDeviceStateIdle && codec->output_enabled()) {
+            // packet.payload包含的是原始PCM数据（int16_t）
+            if (packet.payload.size() >= 2) {
+                size_t num_samples = packet.payload.size() / sizeof(int16_t);
+                std::vector<int16_t> pcm_data(num_samples);
+                memcpy(pcm_data.data(), packet.payload.data(), packet.payload.size());
+                
+                // 检查采样率是否匹配，如果不匹配则进行简单重采样
+                if (packet.sample_rate != codec->output_sample_rate()) {
+                    // ESP_LOGI(TAG, "Resampling music audio from %d to %d Hz", 
+                    //         packet.sample_rate, codec->output_sample_rate());
+                    
+                    // 验证采样率参数
+                    if (packet.sample_rate <= 0 || codec->output_sample_rate() <= 0) {
+                        ESP_LOGE(TAG, "Invalid sample rates: %d -> %d", 
+                                packet.sample_rate, codec->output_sample_rate());
+                        return;
+                    }
+                    
+                    std::vector<int16_t> resampled;
+                    
+                    if (packet.sample_rate > codec->output_sample_rate()) {
+                        ESP_LOGI(TAG, "音乐播放：将采样率从 %d Hz 切换到 %d Hz", 
+                            codec->output_sample_rate(), packet.sample_rate);
 
-void Application::ReleaseAudioState(unsigned int state) {
-    std::lock_guard<std::mutex> lock(audio_state_mutex_);
-    audio_state_ &= ~state;
-}
-
-bool Application::ForceResetAudioHardware() {
-    auto& board = Board::GetInstance();
-    auto codec = board.GetAudioCodec();
-    if (!codec) {
-        ESP_LOGE(TAG, "无法获取音频解码器");
-        return false;
-    }
-    codec->EnableInput(false);
-    codec->EnableOutput(false);
-    vTaskDelay(pdMS_TO_TICKS(20));
-    codec->EnableOutput(true);
-    if (device_state_ == kDeviceStateListening) {
-        codec->EnableInput(true);
-    }
-    return true;
-}
-
-void Application::HandleVoiceCommand(const std::string& message) {
-    std::string lower_message = message;
-    std::transform(lower_message.begin(), lower_message.end(), lower_message.begin(), 
-        [](unsigned char c){ return std::tolower(c); });
-    
-    const std::vector<std::pair<std::string, size_t>> music_triggers = {
-        {"播放", 6}, {"来一首", 9}, {"我想听", 9}, 
-        {"放一首", 9}, {"唱一首", 9}, {"给我放", 9}
-    };
-    
-    bool music_command = false;
-    std::string trigger_word;
-    size_t trigger_bytes = 0;
-    size_t pos = 0;
-    
-    while (pos < lower_message.length() && lower_message[pos] == ' ')
-        pos++;
-    
-    for (const auto& trigger : music_triggers) {
-        if (lower_message.compare(pos, trigger.first.length(), trigger.first) == 0) {
-            music_command = true;
-            trigger_word = trigger.first;
-            trigger_bytes = trigger.second;
-            break;
+                        // 尝试动态切换采样率
+                        if (codec->SetOutputSampleRate(packet.sample_rate)) {
+                            ESP_LOGI(TAG, "成功切换到音乐播放采样率: %d Hz", packet.sample_rate);
+                        } else {
+                            ESP_LOGW(TAG, "无法切换采样率，继续使用当前采样率: %d Hz", codec->output_sample_rate());
+                        }
+                    } else {
+                        // 上采样：线性插值
+                        float upsample_ratio = codec->output_sample_rate() / static_cast<float>(packet.sample_rate);
+                        size_t expected_size = static_cast<size_t>(pcm_data.size() * upsample_ratio + 0.5f);
+                        resampled.reserve(expected_size);
+                        
+                        for (size_t i = 0; i < pcm_data.size(); ++i) {
+                            // 添加原始样本
+                            resampled.push_back(pcm_data[i]);
+                            
+                            // 计算需要插值的样本数
+                            int interpolation_count = static_cast<int>(upsample_ratio) - 1;
+                            if (interpolation_count > 0 && i + 1 < pcm_data.size()) {
+                                int16_t current = pcm_data[i];
+                                int16_t next = pcm_data[i + 1];
+                                for (int j = 1; j <= interpolation_count; ++j) {
+                                    float t = static_cast<float>(j) / (interpolation_count + 1);
+                                    int16_t interpolated = static_cast<int16_t>(current + (next - current) * t);
+                                    resampled.push_back(interpolated);
+                                }
+                            } else if (interpolation_count > 0) {
+                                // 最后一个样本，直接重复
+                                for (int j = 1; j <= interpolation_count; ++j) {
+                                    resampled.push_back(pcm_data[i]);
+                                }
+                            }
+                        }
+                        
+                        ESP_LOGI(TAG, "Upsampled %d -> %d samples (ratio: %.2f)", 
+                                pcm_data.size(), resampled.size(), upsample_ratio);
+                    }
+                    
+                    pcm_data = std::move(resampled);
+                }
+                
+                // 确保音频输出已启用
+                if (!codec->output_enabled()) {
+                    codec->EnableOutput(true);
+                }
+                
+                // 发送PCM数据到音频编解码器
+                codec->OutputData(pcm_data);
+                
+                // 更新最后输出时间，防止OnAudioOutput自动禁用音频
+                {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    last_output_time_ = std::chrono::steady_clock::now();
+                }
+            }
         }
     }
-    
-    if (!music_command)
-        return;
-        
-    const char* orig_msg = message.c_str();
-    const char* found = nullptr;
-    
-    for (const auto& trigger : music_triggers) {
-        const char* p = strstr(orig_msg, trigger.first.c_str());
-        if (p != nullptr) {
-            found = p + trigger.second;
-            break;
-        }
-    }
-    
-    if (found == nullptr || strlen(found) == 0)
-        return;
-        
-    std::string song_name = found;
-    
-    // 修复中文标点符号的比较
-    if (!song_name.empty() && song_name.back() == static_cast<char>(0xE3) && song_name.length() >= 3) {
-        // 检查是否为中文句号 '。' (UTF-8: E3 80 82)
-        if (song_name.length() >= 3 && 
-            static_cast<unsigned char>(song_name[song_name.length()-3]) == 0xE3 && 
-            static_cast<unsigned char>(song_name[song_name.length()-2]) == 0x80 && 
-            static_cast<unsigned char>(song_name[song_name.length()-1]) == 0x82) {
-            song_name.erase(song_name.length()-3, 3);
-        }
-    }
-    
-    if (song_name.empty())
-        return;
-       
-#if CONFIG_ENABLE_MUSIC_PLAYER
-    if (!music_service_) {
-        ESP_LOGE(TAG, "音乐服务未初始化，无法播放: %s", song_name.c_str());
-        return;
-    }
-    
-    
-    RequestMusicInterrupt();
-    
-    if (music_service_->IsPlaying())
-        music_service_->Stop();
-    
-    RequestAudioState(AUDIO_STATE_MUSIC);
-    
-    if (protocol_) {
-        protocol_->CloseAudioChannel();
-    }
-    
-    SetDeviceState(kDeviceStateMusicPlaying);
-    
-    music_service_->PlaySong(song_name);
-#else
-    ESP_LOGW(TAG, "音乐播放功能未启用");
 #endif
-}
-
-void Application::HandleLLMInstruction(const cJSON* root) {
-    auto music_play = cJSON_GetObjectItem(root, "music_play");
-    if (music_play == NULL || !cJSON_IsString(music_play))
-        return;
-    
-    const char* song_name = music_play->valuestring;
-    if (song_name == NULL || strlen(song_name) == 0)
-        return;
-    
-    Schedule([this, song_name_str = std::string(song_name)]() {
-        if (!music_service_) {
-            ESP_LOGE(TAG, "音乐服务未初始化，无法播放: %s", song_name_str.c_str());
-            return;
-        }
-        
-        std::string cleaned_song_name = song_name_str;
-        //if (!cleaned_song_name.empty() && cleaned_song_name.back() == '。')
-        if (!cleaned_song_name.empty() && cleaned_song_name.size() >= 3 &&
-            static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 3]) == 0xE3 &&
-            static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 2]) == 0x80 &&
-            static_cast<unsigned char>(cleaned_song_name[cleaned_song_name.size() - 1]) == 0x82) {
-            cleaned_song_name.erase(cleaned_song_name.size() - 3, 3);
-        }
-        
-        RequestMusicInterrupt();
-        
-        if (music_service_->IsPlaying())
-            music_service_->Stop();
-        
-        RequestAudioState(AUDIO_STATE_MUSIC);
-        
-        if (protocol_) {
-            protocol_->CloseAudioChannel();
-        }
-        
-        SetDeviceState(kDeviceStateMusicPlaying);
-        
-        music_service_->PlaySong(cleaned_song_name);
-    });
-}
-#endif
-
