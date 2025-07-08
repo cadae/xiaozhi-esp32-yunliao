@@ -29,16 +29,8 @@
 #endif
 
     LV_FONT_DECLARE(font_awesome_20_4);
-#if defined(zh_tw)
-    LV_FONT_DECLARE(font_lxgw_20_4_zh_tw);
-    #define FONT font_lxgw_20_4_zh_tw
-#elif defined(ja_jp)
-    LV_FONT_DECLARE(font_noto_20_4_ja_jp);
-    #define FONT font_noto_20_4_ja_jp
-#else
     LV_FONT_DECLARE(font_puhui_20_4);
     #define FONT font_puhui_20_4
-#endif
 
 esp_lcd_panel_handle_t panel = nullptr;
 
@@ -346,11 +338,7 @@ void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
     wifi_ap.Start();
     wifi_ap.StartSmartConfig();
 
-#if (defined ja_jp) || (defined en_us)
-    std::string hint = "";
-#else
     std::string hint = Lang::Strings::SCAN_QR;
-#endif
     hint += Lang::Strings::CONNECT_TO_HOTSPOT;
     hint += wifi_ap.GetSsid();
     hint += Lang::Strings::ACCESS_VIA_BROWSER;
