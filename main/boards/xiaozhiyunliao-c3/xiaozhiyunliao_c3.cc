@@ -30,16 +30,8 @@
 #endif
 
     LV_FONT_DECLARE(font_awesome_20_4);
-#if defined(zh_tw)
-    LV_FONT_DECLARE(font_lxgw_20_4_zh_tw);
-    #define FONT font_lxgw_20_4_zh_tw
-#elif defined(ja_jp)
-    LV_FONT_DECLARE(font_noto_20_4_ja_jp);
-    #define FONT font_noto_20_4_ja_jp
-#else
     LV_FONT_DECLARE(font_puhui_20_4);
     #define FONT font_puhui_20_4
-#endif
 
 esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
