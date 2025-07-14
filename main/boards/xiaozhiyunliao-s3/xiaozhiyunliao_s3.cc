@@ -213,6 +213,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     boot_button_.OnClick([this]() {
         // ESP_LOGI(TAG, "Button OnClick");
         auto& app = Application::GetInstance();
+#if CONFIG_USE_ALARM
+        app.ToggleChatState();
+#endif
         std::string wake_word=Lang::Strings::WAKE_WORD;
         app.WakeWordInvoke(wake_word);
     });
@@ -294,9 +297,6 @@ void XiaoZhiYunliaoS3::InitializeIot() {
     thing_manager.AddThing(iot::CreateThing("Speaker"));
     thing_manager.AddThing(iot::CreateThing("LCDScreen"));
     thing_manager.AddThing(iot::CreateThing("BoardControl"));
-#if CONFIG_USE_ALARM
-    thing_manager.AddThing(iot::CreateThing("AlarmIot"));
-#endif
 #elif CONFIG_IOT_PROTOCOL_MCP
     McpTools::GetInstance();
 #endif

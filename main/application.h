@@ -21,10 +21,11 @@
 #include "ota.h"
 #include "background_task.h"
 #include "audio_processor.h"
-#if CONFIG_USE_ALARM
-#include "boards/xiaozhiyunliao-c3/AlarmClock.h"
-#endif
 #include "wake_word.h"
+#if CONFIG_USE_ALARM
+    #include "AlarmClock.h"
+    #define ALARM_EVENT (1 << 2)
+#endif
 #include "audio_debugger.h"
 
 #define SCHEDULE_EVENT (1 << 0)
@@ -90,7 +91,8 @@ public:
     AecMode GetAecMode() const { return aec_mode_; }
 #if CONFIG_USE_ALARM
     AlarmManager* alarm_m_ = nullptr;
-    std::list<std::vector<uint8_t>> audio_decode_queue_;
+    void SetAlarmEvent();
+    void ClearAlarmEvent();
 #endif
     BackgroundTask* GetBackgroundTask() const { return background_task_; }
 #if CONFIG_USE_MUSIC
@@ -126,10 +128,7 @@ private:
     BackgroundTask* background_task_ = nullptr;
     std::chrono::steady_clock::time_point last_output_time_;
     std::list<AudioStreamPacket> audio_send_queue_;
-#if CONFIG_USE_ALARM
-#else
     std::list<AudioStreamPacket> audio_decode_queue_;
-#endif
     std::condition_variable audio_decode_cv_;
     std::list<AudioStreamPacket> audio_testing_queue_;
 

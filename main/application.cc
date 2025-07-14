@@ -343,10 +343,9 @@ void Application::ToggleChatState() {
     }
 #if CONFIG_USE_ALARM
     else if (device_state_ == kDeviceStateAlarm) {
-        Schedule([this]() {
-            alarm_m_->ClearRing();
-            SetDeviceState(kDeviceStateIdle);
-        });
+        alarm_m_->ClearRing();
+        ESP_LOGI(TAG, "Alarm cleared Toggle");
+        SetDeviceState(kDeviceStateIdle);
     }
 #endif
 }
@@ -409,6 +408,7 @@ void Application::StopListening() {
 }
 
 void Application::Start() {
+    ESP_LOGI(TAG, "Application start begin");
     auto& board = Board::GetInstance();
     SetDeviceState(kDeviceStateStarting);
 
@@ -514,9 +514,9 @@ void Application::Start() {
         Schedule([this]() {
             auto display = Board::GetInstance().GetDisplay();
             display->SetChatMessage("system", "");
-// #if CONFIG_USE_ALARM
-//             if(device_state_ != kDeviceStateAlarm)
-// #endif
+#if CONFIG_USE_ALARM
+            if(device_state_ != kDeviceStateAlarm)
+#endif
             SetDeviceState(kDeviceStateIdle);
         });
     });
@@ -715,26 +715,32 @@ void Application::Start() {
 #if CONFIG_USE_ALARM
             else if(device_state_ == kDeviceStateAlarm){
                 alarm_m_->ClearRing();
+                ESP_LOGI(TAG, "Wake word detected in alarm state, clear alarm");
                 SetDeviceState(kDeviceStateConnecting);
-                wake_word_detect_.EncodeWakeWordData();
+                wake_word_->EncodeWakeWordData();
 
                 if (!protocol_->OpenAudioChannel()) {
                     ESP_LOGE(TAG, "Failed to open audio channel");
                     SetDeviceState(kDeviceStateIdle);
-                    wake_word_detect_.StartDetection();
+                    wake_word_->StartDetection();
                     return;
                 }
-                
-                std::vector<uint8_t> opus;
+    #if CONFIG_USE_AFE_WAKE_WORD
+                AudioStreamPacket packet;
                 // Encode and send the wake word data to the server
-                while (wake_word_detect_.GetWakeWordOpus(opus)) {
-                    protocol_->SendAudio(opus);
+                while (wake_word_->GetWakeWordOpus(packet.payload)) {
+                    protocol_->SendAudio(packet);
                 }
                 // Set the chat state to wake word detected
                 protocol_->SendWakeWordDetected(wake_word);
-                ESP_LOGI(TAG, "Wake word detected: %s", wake_word.c_str());
-                keep_listening_ = true;
-                SetDeviceState(kDeviceStateListening);
+    #else
+                // Play the pop up sound to indicate the wake word is detected
+                // And wait 60ms to make sure the queue has been processed by audio task
+                ResetDecoder();
+                PlaySound(Lang::Sounds::P3_POPUP);
+                vTaskDelay(pdMS_TO_TICKS(60));
+    #endif
+                SetListeningMode(aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime);
             }
 #endif
 
@@ -757,20 +763,28 @@ void Application::Start() {
     }
 
 #if CONFIG_USE_ALARM
-   // 添加超时机制（示例：最多等待 10 秒）
-    const uint32_t max_retry = 100;
-    uint32_t retry_count = 0;
-    while (!ota_.HasServerTime() && (retry_count++ < max_retry)) {
-        vTaskDelay(pdMS_TO_TICKS(100));
+    if (!alarm_m_) { // 确保alarm_m_未初始化
+        int retry_count = 0;
+        while(!ota.HasServerTime()){
+            retry_count++;
+            vTaskDelay(pdMS_TO_TICKS(100));
+            if(retry_count >= 60){
+                ESP_LOGW(TAG, "Failed to get server time, exit alarm manager");
+                break;
+            }
+        }
+        if (retry_count < 60){
+            ESP_LOGI(TAG, "Server time synchronized, start alarm manager");
+            alarm_m_ = new AlarmManager();
+        }else{
+            ESP_LOGW(TAG, "AlarmManager init failed: No server time");
+        }
     }
-    if (retry_count <= max_retry && ota_.HasServerTime()) {
-        alarm_m_ = new AlarmManager();
-    }
-#endif    
+#endif
 
     // Print heap stats
     SystemInfo::PrintHeapStats();
-
+    ESP_LOGI(TAG, "Application start end");
     // Enter the main event loop
     MainEventLoop();
 }
@@ -800,6 +814,12 @@ void Application::OnClockTimer() {
             }
         }
     }
+#if CONFIG_USE_ALARM
+    if (alarm_m_) { // 每秒检查
+        alarm_m_->CheckAlarms(time(NULL));
+    }
+#endif
+
 }
 
 // Add a async task to MainLoop
@@ -819,7 +839,11 @@ void Application::MainEventLoop() {
     vTaskPrioritySet(NULL, 3);
 
     while (true) {
+#if CONFIG_USE_ALARM
+        auto bits = xEventGroupWaitBits(event_group_, SCHEDULE_EVENT | SEND_AUDIO_EVENT | ALARM_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+#else 
         auto bits = xEventGroupWaitBits(event_group_, SCHEDULE_EVENT | SEND_AUDIO_EVENT, pdTRUE, pdFALSE, portMAX_DELAY);
+#endif
 
         if (bits & SEND_AUDIO_EVENT) {
             std::unique_lock<std::mutex> lock(mutex_);
@@ -841,28 +865,34 @@ void Application::MainEventLoop() {
             }
         }
 #if CONFIG_USE_ALARM
-        if(alarm_m_ != nullptr){
+        if(alarm_m_ != nullptr && (bits & ALARM_EVENT)){
             if(alarm_m_->IsRing()){
                 if(device_state_ != kDeviceStateAlarm){
                     if (device_state_ == kDeviceStateActivating) {
                         Reboot();
                         return;
                     } else if (device_state_ == kDeviceStateSpeaking) {
+                        ESP_LOGI(TAG, "Alarm ring, abort speaking");
                         AbortSpeaking(kAbortReasonNone);
+                        protocol_->CloseAudioChannel();
                         aborted_ = false; // 不停止本地的播放
                     } else if (device_state_ == kDeviceStateListening) {
+                        ESP_LOGI(TAG, "Alarm ring, close audio channel");
                         protocol_->CloseAudioChannel();
                     }
                     ESP_LOGI(TAG, "Alarm ring, begging status %d", device_state_);
                     SetDeviceState(kDeviceStateAlarm); //强制设置为播放模式
+                    auto display = Board::GetInstance().GetDisplay();
+                    display->SetChatMessage("system", "");
+                    display->SetEmotion("bell");
                 }
                 if(audio_decode_queue_.empty() && background_task_->GetTaskNum() <= 10){
                     PlaySound(Lang::Sounds::P3_ALARM_RING);
-                    ESP_LOGI(TAG, "Alarm ring, now status %d", device_state_);
                 }
+                SetAlarmEvent();//循环播放
             }
         }
-#endif        
+#endif
     }
 }
 
@@ -1054,6 +1084,9 @@ void Application::SetDeviceState(DeviceState state) {
     background_task_->WaitForCompletion();
 
     auto& board = Board::GetInstance();
+#if CONFIG_USE_ALARM
+    auto codec = board.GetAudioCodec();
+#endif
     auto display = board.GetDisplay();
     auto led = board.GetLed();
     led->OnStateChanged();
@@ -1123,11 +1156,8 @@ void Application::SetDeviceState(DeviceState state) {
 #if CONFIG_USE_ALARM
         case kDeviceStateAlarm:
             ResetDecoder();
-            auto codec = board.GetAudioCodec();
             codec->EnableOutput(true);
-    #if CONFIG_USE_AUDIO_PROCESSING
             audio_processor_->Stop();
-    #endif
             break;
 #endif
         default:
@@ -1194,15 +1224,6 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
                 protocol_->CloseAudioChannel();
             }
         });
-#if CONFIG_USE_ALARM
-    } else if (device_state_ == kDeviceStateAlarm) {
-        ToggleChatState();
-        Schedule([this, wake_word]() {
-            if (protocol_) {
-                protocol_->SendWakeWordDetected(wake_word); 
-            }
-        }); 
-#endif
     }
 }
 
@@ -1254,8 +1275,17 @@ void Application::SetAecMode(AecMode mode) {
     });
 }
 
+#if CONFIG_USE_ALARM
+    void Application::SetAlarmEvent(){
+        xEventGroupSetBits(event_group_, ALARM_EVENT);
+    }
+
+    void Application::ClearAlarmEvent(){
+        xEventGroupClearBits(event_group_, ALARM_EVENT);
+    }
+#endif
+
 #if CONFIG_USE_MUSIC
-    // 新增：接收外部音频数据（如音乐播放）
     void Application::AddAudioData(AudioStreamPacket&& packet) {
         auto codec = Board::GetInstance().GetAudioCodec();
         if (device_state_ == kDeviceStateIdle && codec->output_enabled()) {
@@ -1279,16 +1309,24 @@ void Application::SetAecMode(AecMode mode) {
                     
                     std::vector<int16_t> resampled;
                     
+                    // 使用浮点数计算精确的重采样比率Add commentMore actions
+                    float ratio = static_cast<float>(packet.sample_rate) / codec->output_sample_rate();
+                    
                     if (packet.sample_rate > codec->output_sample_rate()) {
-                        ESP_LOGI(TAG, "音乐播放：将采样率从 %d Hz 切换到 %d Hz", 
-                            codec->output_sample_rate(), packet.sample_rate);
-
-                        // 尝试动态切换采样率
-                        if (codec->SetOutputSampleRate(packet.sample_rate)) {
-                            ESP_LOGI(TAG, "成功切换到音乐播放采样率: %d Hz", packet.sample_rate);
-                        } else {
-                            ESP_LOGW(TAG, "无法切换采样率，继续使用当前采样率: %d Hz", codec->output_sample_rate());
+                        // 降采样：按精确比率跳跃采样
+                        size_t expected_size = static_cast<size_t>(pcm_data.size() / ratio + 0.5f);
+                        resampled.reserve(expected_size);
+                        
+                        for (float i = 0; i < pcm_data.size(); i += ratio) {
+                            size_t index = static_cast<size_t>(i + 0.5f);  // 四舍五入
+                            if (index < pcm_data.size()) {
+                                resampled.push_back(pcm_data[index]);
+                            }
                         }
+                        
+                        ESP_LOGD(TAG, "Downsampled %d -> %d samples (ratio: %.3f)", 
+                                pcm_data.size(), resampled.size(), ratio);
+                                
                     } else {
                         // 上采样：线性插值
                         float upsample_ratio = codec->output_sample_rate() / static_cast<float>(packet.sample_rate);

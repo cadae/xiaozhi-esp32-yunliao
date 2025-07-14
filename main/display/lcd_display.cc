@@ -847,6 +847,7 @@ void LcdDisplay::SetEmotion(const char* emotion) {
     };
 
     static const std::vector<Emotion> emotions = {
+        {"🔔", "bell"},
         {"😶", "neutral"},
         {"🙂", "happy"},
         {"😆", "laughing"},
