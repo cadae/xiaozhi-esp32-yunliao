@@ -483,7 +483,7 @@ config USE_GIF_EMOTION_STYLE
 config USE_ALARM
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用闹钟功能"
-    default n
+    default y
     help
         一个自定义的闹钟功能
 

@@ -889,6 +889,7 @@ void Application::MainEventLoop() {
                 if(audio_decode_queue_.empty() && background_task_->GetTaskNum() <= 10){
                     PlaySound(Lang::Sounds::P3_ALARM_RING);
                 }
+                vTaskDelay(pdMS_TO_TICKS(1000));
                 SetAlarmEvent();//循环播放
             }
         }
