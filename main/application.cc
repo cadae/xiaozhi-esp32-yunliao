@@ -308,12 +308,12 @@ void Application::ToggleChatState() {
     if (device_state_ == kDeviceStateActivating) {
         SetDeviceState(kDeviceStateIdle);
         return;
-    } else if (device_state_ == kDeviceStateWifiConfiguring) {
-        EnterAudioTestingMode();
-        return;
-    } else if (device_state_ == kDeviceStateAudioTesting) {
-        ExitAudioTestingMode();
-        return;
+    // } else if (device_state_ == kDeviceStateWifiConfiguring) {
+    //     EnterAudioTestingMode();
+    //     return;
+    // } else if (device_state_ == kDeviceStateAudioTesting) {
+    //     ExitAudioTestingMode();
+    //     return;
     }
 
     if (!protocol_) {
@@ -354,9 +354,9 @@ void Application::StartListening() {
     if (device_state_ == kDeviceStateActivating) {
         SetDeviceState(kDeviceStateIdle);
         return;
-    } else if (device_state_ == kDeviceStateWifiConfiguring) {
-        EnterAudioTestingMode();
-        return;
+    // } else if (device_state_ == kDeviceStateWifiConfiguring) {
+    //     EnterAudioTestingMode();
+    //     return;
     }
 
     if (!protocol_) {
@@ -384,10 +384,10 @@ void Application::StartListening() {
 }
 
 void Application::StopListening() {
-    if (device_state_ == kDeviceStateAudioTesting) {
-        ExitAudioTestingMode();
-        return;
-    }
+    // if (device_state_ == kDeviceStateAudioTesting) {
+    //     ExitAudioTestingMode();
+    //     return;
+    // }
 
     const std::array<int, 3> valid_states = {
         kDeviceStateListening,
@@ -968,10 +968,10 @@ void Application::OnAudioOutput() {
 
 void Application::OnAudioInput() {
     if (device_state_ == kDeviceStateAudioTesting) {
-        if (audio_testing_queue_.size() >= AUDIO_TESTING_MAX_DURATION_MS / OPUS_FRAME_DURATION_MS) {
-            ExitAudioTestingMode();
-            return;
-        }
+        // if (audio_testing_queue_.size() >= AUDIO_TESTING_MAX_DURATION_MS / OPUS_FRAME_DURATION_MS) {
+        //     ExitAudioTestingMode();
+        //     return;
+        // }
         std::vector<int16_t> data;
         int samples = OPUS_FRAME_DURATION_MS * 16000 / 1000;
         if (ReadAudio(data, 16000, samples)) {
