@@ -16,6 +16,9 @@
 #if CONFIG_USE_ALARM
     #include "AlarmClock.h"
 #endif
+#if CONFIG_USE_NEWS
+    #include "mcp_news_tools.h"
+#endif
 
 #define TAG "MCP"
 
@@ -153,6 +156,9 @@ void McpServer::AddCommonTools() {
                 return true;
             });
     }
+#endif
+#if CONFIG_USE_NEWS
+    AddNewsMcpTools();
 #endif
 
     // Restore the original tools list to the end of the tools list

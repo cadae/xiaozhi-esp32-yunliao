@@ -515,6 +515,13 @@ config USE_MUSIC
     help
         启用音乐播放器功能，允许播放在线音乐。需后台配置
 
+config USE_NEWS
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用新闻功能"
+    default n
+    help
+        启用新闻功能，允许播放RSS新闻
+
 config WIFI_FACTORY_SSID
     string "WiFi Factory SSID"
     default ""
