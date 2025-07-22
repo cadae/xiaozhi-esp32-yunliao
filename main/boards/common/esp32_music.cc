@@ -1,7 +1,7 @@
 #include "esp32_music.h"
 #include "board.h"
 #include "system_info.h"
-#include "audio_codecs/audio_codec.h"
+#include "audio_codec.h"
 #include "application.h"
 #include "protocols/protocol.h"
 #include "display/display.h"
@@ -216,7 +216,7 @@ bool Esp32Music::Download(const std::string& song_name) {
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
-    auto http = Board::GetInstance().CreateHttp();
+    auto http = Board::GetInstance().GetNetwork()->CreateHttp(2);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -494,7 +494,7 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
         return;
     }
     
-    auto http = Board::GetInstance().CreateHttp();
+    auto http = Board::GetInstance().GetNetwork()->CreateHttp(3);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -1003,7 +1003,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         // 使用Board提供的HTTP客户端
-        auto http = Board::GetInstance().CreateHttp();
+        auto http = Board::GetInstance().GetNetwork()->CreateHttp(4);
         if (!http) {
             ESP_LOGE(TAG, "Failed to create HTTP client for lyric download");
             retry_count++;

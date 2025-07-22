@@ -1,5 +1,5 @@
 #include "wifi_board.h"
-#include "es8388_audio_codec.h"
+#include "codecs/es8388_audio_codec.h"
 #include "xiaoziyunliao_display.h"
 #include "xiaozhiyunliao_s3.h"
 #include "application.h"
@@ -11,7 +11,6 @@
 #include <ssid_manager.h>
 #include <esp_log.h>
 // #include "i2c_device.h"
-#include "iot/thing_manager.h"
 #include <driver/i2c_master.h>
 #include <string.h> 
 #include <wifi_configuration_ap.h>
@@ -35,7 +34,7 @@
 esp_lcd_panel_handle_t panel = nullptr;
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
-    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, 4096, 0),
+    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
 #ifdef THREE_BUTTON_MODE
       volume_up_button_(VOLUME_UP_BUTTON_GPIO),
@@ -67,7 +66,6 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
-    InitializeIot();
     ESP_LOGI(TAG, "Inited");
 }
 
@@ -291,16 +289,6 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 #endif
 }
 
-void XiaoZhiYunliaoS3::InitializeIot() {
-#if CONFIG_IOT_PROTOCOL_XIAOZHI
-    auto& thing_manager = iot::ThingManager::GetInstance();
-    thing_manager.AddThing(iot::CreateThing("Speaker"));
-    thing_manager.AddThing(iot::CreateThing("LCDScreen"));
-    thing_manager.AddThing(iot::CreateThing("BoardControl"));
-#elif CONFIG_IOT_PROTOCOL_MCP
-    McpTools::GetInstance();
-#endif
-}
 
 
 AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {

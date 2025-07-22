@@ -88,7 +88,7 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
-    InitializeIot();
+    McpTools::GetInstance();
     ESP_LOGI(TAG, "Inited");
 }
 

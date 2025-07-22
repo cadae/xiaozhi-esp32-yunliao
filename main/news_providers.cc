@@ -119,7 +119,7 @@ NewsResponse FreeNewsProvider::SearchNews(const NewsSearchParams& params) {
             }
         
         auto& board = Board::GetInstance();
-        auto http = board.CreateHttp();
+        auto http = board.GetNetwork()->CreateHttp(1);
             
             // Configure HTTP headers for better compatibility
             ConfigureHttpHeaders(http);

@@ -2,9 +2,8 @@
 #define XIAOZHIYUNLIAO_S3_H
 
 #include "dual_network_board.h"
-#include "audio_codecs/es8311_audio_codec.h"
+#include "codecs/es8311_audio_codec.h"
 #include "button.h"
-#include "iot/thing_manager.h"
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
@@ -34,7 +33,6 @@ private:
 
     void InitializeI2c();
     void InitializeButtons();
-    void InitializeIot();
     void InitializePowerSaveTimer();
 
 public:

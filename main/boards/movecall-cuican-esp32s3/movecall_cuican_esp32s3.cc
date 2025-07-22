@@ -1,11 +1,10 @@
 #include "movecall_cuican_esp32s3.h"
 #include "wifi_board.h"
-#include "audio_codecs/es8311_audio_codec.h"
+#include "codecs/es8311_audio_codec.h"
 #include "display/lcd_display.h"
 #include "application.h"
 #include "button.h"
 #include "config.h"
-#include "iot/thing_manager.h"
 #include "led/single_led.h"
 
 #include <wifi_station.h>
@@ -164,42 +163,14 @@ void MovecallCuicanESP32S3::InitializeButtons() {
     });
 }
 
-// 物联网初始化，添加对 AI 可见设备
-void MovecallCuicanESP32S3::InitializeIot() {
-    auto& thing_manager = iot::ThingManager::GetInstance();
-    thing_manager.AddThing(iot::CreateThing("Speaker"));
-    thing_manager.AddThing(iot::CreateThing("Screen"));
-    thing_manager.AddThing(iot::CreateThing("BoardControl"));
-}
-void MovecallCuicanESP32S3::Sleep() {
-    ESP_LOGI(TAG, "Entering deep sleep");
-    Application::GetInstance().StopListening();
-    if (auto* codec = GetAudioCodec()) {
-        codec->EnableOutput(false);
-        codec->EnableInput(false);
+public:
+    MovecallCuicanESP32S3() : boot_button_(BOOT_BUTTON_GPIO) {  
+        InitializeCodecI2c();
+        InitializeSpi();
+        InitializeGc9a01Display();
+        InitializeButtons();
+        GetBacklight()->RestoreBrightness();
     }
-    GetBacklight()->SetBrightness(0);
-    if (panel_handle) {
-        esp_lcd_panel_disp_on_off(panel_handle, false);
-    }
-    MCUSleep();
-}
-void MovecallCuicanESP32S3::MCUSleep() {
-    printf("Enabling EXT0 wakeup on pin GPIO%d\n", BOOT_BUTTON_GPIO);
-    ESP_ERROR_CHECK(esp_sleep_enable_ext0_wakeup(BOOT_BUTTON_GPIO, 0));
-    ESP_ERROR_CHECK(rtc_gpio_pulldown_dis(BOOT_BUTTON_GPIO));
-    ESP_ERROR_CHECK(rtc_gpio_pullup_en(BOOT_BUTTON_GPIO));
-    esp_deep_sleep_start();
-}
-
-MovecallCuicanESP32S3::MovecallCuicanESP32S3() : boot_button_(BOOT_BUTTON_GPIO, false, 800) {  
-    InitializeCodecI2c();
-    InitializeSpi();
-    InitializeGc9a01Display();
-    InitializeButtons();
-    InitializeIot();
-    GetBacklight()->RestoreBrightness();
-}
 
 Led* MovecallCuicanESP32S3::GetLed() {
     static SingleLed led_strip(BUILTIN_LED_GPIO);

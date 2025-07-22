@@ -33,7 +33,6 @@ private:
 
     void InitializeI2c();
     void InitializeButtons();
-    void InitializeIot();
     void InitializeBattMon();
     void InitializeBattTimers();
     void Start5V();
