@@ -49,7 +49,7 @@ void DualNetworkBoard::SwitchNetworkType() {
     auto display = GetDisplay();
     if (network_type_ == NetworkType::WIFI) {
         network_type_ = NetworkType::ML307;
-        auto modem = AtModem::Detect(ml307_tx_pin_, ml307_rx_pin_);
+        auto modem = AtModem::Detect(ml307_tx_pin_, ml307_rx_pin_, GPIO_NUM_NC , -1);
         if(modem){
             SaveNetworkTypeToSettings(NetworkType::ML307);
             display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);

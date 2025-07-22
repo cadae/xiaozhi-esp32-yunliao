@@ -18,7 +18,7 @@
 #include "device_state_event.h"
 #if CONFIG_USE_ALARM
     #include "AlarmClock.h"
-    #define ALARM_EVENT (1 << 6)
+    #define MAIN_EVENT_ALARM (1 << 6)
 #endif
 
 #define MAIN_EVENT_SCHEDULE (1 << 0)

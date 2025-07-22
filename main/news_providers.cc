@@ -56,28 +56,6 @@ const int HTTP_TIMEOUT_MS = 10000;  // 10 seconds
 const int MAX_RETRIES = 3;
 const int RETRY_DELAY_MS = 2000;    // 2 seconds between retries
 
-// Helper function to configure HTTP headers for RSS requests
-void ConfigureHttpHeaders(Http* http) {
-    if (!http) return;
-    
-    // Set user agent to appear as a legitimate RSS reader
-    http->SetHeader("User-Agent", "XiaoZhi RSS Reader/1.0 (+https://github.com/m5stack/xiaozhi-esp32)");
-    
-    // Accept RSS/XML content types
-    http->SetHeader("Accept", "application/rss+xml, application/atom+xml, application/xml, text/xml, */*");
-    
-    // Accept encoding
-    http->SetHeader("Accept-Encoding", "gzip, deflate");
-    
-    // Accept language
-    http->SetHeader("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,zh-CN;q=0.6,zh;q=0.5");
-    
-    // Connection settings
-    http->SetHeader("Connection", "close");
-    
-    // Cache control
-    http->SetHeader("Cache-Control", "no-cache");
-}
 
 // FreeNewsProvider implementation
 
@@ -121,8 +99,25 @@ NewsResponse FreeNewsProvider::SearchNews(const NewsSearchParams& params) {
         auto& board = Board::GetInstance();
         auto http = board.GetNetwork()->CreateHttp(1);
             
-            // Configure HTTP headers for better compatibility
-            ConfigureHttpHeaders(http);
+
+        // Set user agent to appear as a legitimate RSS reader
+        http->SetHeader("User-Agent", "XiaoZhi RSS Reader/1.0 (+https://github.com/m5stack/xiaozhi-esp32)");
+        
+        // Accept RSS/XML content types
+        http->SetHeader("Accept", "application/rss+xml, application/atom+xml, application/xml, text/xml, */*");
+        
+        // Accept encoding
+        http->SetHeader("Accept-Encoding", "gzip, deflate");
+        
+        // Accept language
+        http->SetHeader("Accept-Language", "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,zh-CN;q=0.6,zh;q=0.5");
+        
+        // Connection settings
+        http->SetHeader("Connection", "close");
+        
+        // Cache control
+        http->SetHeader("Cache-Control", "no-cache");
+
         
         if (!http->Open("GET", feed_url)) {
                 ESP_LOGW(TAG, "Failed to open HTTP connection to RSS feed: %s (attempt %d)", 

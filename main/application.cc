@@ -556,6 +556,13 @@ void Application::OnClockTimer() {
 #if CONFIG_USE_ALARM
     if (alarm_m_) { // 每秒检查
         alarm_m_->CheckAlarms(time(NULL));
+        if(alarm_m_->IsRing()){
+            if(alarm_m_->DelaySecond > 0){
+                alarm_m_->DelaySecond --;
+            }else{
+                SetAlarmEvent();//循环播放
+            }
+        }
     }
 #endif
 
@@ -583,7 +590,7 @@ void Application::MainEventLoop() {
             MAIN_EVENT_WAKE_WORD_DETECTED |
             MAIN_EVENT_VAD_CHANGE |
 #if CONFIG_USE_ALARM
-            ALARM_EVENT | 
+            MAIN_EVENT_ALARM | 
 #endif
             MAIN_EVENT_ERROR, pdTRUE, pdFALSE, portMAX_DELAY);
         if (bits & MAIN_EVENT_ERROR) {
@@ -610,16 +617,8 @@ void Application::MainEventLoop() {
             }
         }
 
-        if (bits & MAIN_EVENT_SCHEDULE) {
-            std::unique_lock<std::mutex> lock(mutex_);
-            auto tasks = std::move(main_tasks_);
-            lock.unlock();
-            for (auto& task : tasks) {
-                task();
-            }
-        }
-        #if CONFIG_USE_ALARM
-        if(alarm_m_ != nullptr && (bits & ALARM_EVENT)){
+#if CONFIG_USE_ALARM
+        if(alarm_m_ != nullptr && (bits & MAIN_EVENT_ALARM)){
             if(alarm_m_->IsRing()){
                 if(device_state_ != kDeviceStateAlarm){
                     if (device_state_ == kDeviceStateActivating) {
@@ -643,11 +642,19 @@ void Application::MainEventLoop() {
                 if(audio_service_.audio_decode_queue_.empty()){
                     audio_service_.PlaySound(Lang::Sounds::P3_ALARM_RING);
                 }
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                SetAlarmEvent();//循环播放
+                alarm_m_->DelaySecond = 3;
             }
         }
+
 #endif
+        if (bits & MAIN_EVENT_SCHEDULE) {
+            std::unique_lock<std::mutex> lock(mutex_);
+            auto tasks = std::move(main_tasks_);
+            lock.unlock();
+            for (auto& task : tasks) {
+                task();
+            }
+        }
 
     }
 }
@@ -869,11 +876,11 @@ void Application::PlaySound(const std::string_view& sound) {
 
 #if CONFIG_USE_ALARM
     void Application::SetAlarmEvent(){
-        xEventGroupSetBits(event_group_, ALARM_EVENT);
+        xEventGroupSetBits(event_group_, MAIN_EVENT_ALARM);
     }
 
     void Application::ClearAlarmEvent(){
-        xEventGroupClearBits(event_group_, ALARM_EVENT);
+        xEventGroupClearBits(event_group_, MAIN_EVENT_ALARM);
     }
 #endif
 

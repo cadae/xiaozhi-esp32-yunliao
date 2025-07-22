@@ -29,6 +29,8 @@ public:
     bool IsRing(){ return ring_flag; };
     // 清除闹钟标志位
     void ClearRing();
+    //响铃倒计时
+    int DelaySecond;
 
 private:
     std::mutex mutex_; // 互斥锁

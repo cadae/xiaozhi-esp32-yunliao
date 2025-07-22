@@ -1018,7 +1018,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         // ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
         if (!http->Open("GET", current_url)) {
             ESP_LOGE(TAG, "Failed to open HTTP connection for lyrics");
-            delete http;
             retry_count++;
             continue;
         }
@@ -1032,7 +1031,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
             // 由于无法获取Location头，只能报告重定向但无法继续
             ESP_LOGW(TAG, "Received redirect status %d but cannot follow redirect (no GetHeader method)", status_code);
             http->Close();
-            delete http;
             retry_count++;
             continue;
         }
@@ -1041,7 +1039,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         if (status_code < 200 || status_code >= 300) {
             ESP_LOGE(TAG, "HTTP GET failed with status code: %d", status_code);
             http->Close();
-            delete http;
             retry_count++;
             continue;
         }
@@ -1090,7 +1087,6 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         http->Close();
-        delete http;
         
         if (read_error) {
             retry_count++;
