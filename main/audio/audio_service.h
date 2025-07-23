@@ -108,11 +108,11 @@ public:
     void ResetDecoder();
     std::deque<std::unique_ptr<AudioStreamPacket>> audio_decode_queue_;
     std::chrono::steady_clock::time_point last_output_time_;
-    std::unique_ptr<AudioProcessor> audio_processor_;
 
 private:
     AudioCodec* codec_ = nullptr;
     AudioServiceCallbacks callbacks_;
+    std::unique_ptr<AudioProcessor> audio_processor_;
     std::unique_ptr<WakeWord> wake_word_;
     std::unique_ptr<AudioDebugger> audio_debugger_;
     std::unique_ptr<OpusEncoderWrapper> opus_encoder_;

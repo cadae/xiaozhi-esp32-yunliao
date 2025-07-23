@@ -783,7 +783,6 @@ void Application::SetDeviceState(DeviceState state) {
             case kDeviceStateAlarm:
                 audio_service_.ResetDecoder();
                 codec->EnableOutput(true);
-                audio_service_.audio_processor_->Stop();
                 break;
     #endif
             default:
