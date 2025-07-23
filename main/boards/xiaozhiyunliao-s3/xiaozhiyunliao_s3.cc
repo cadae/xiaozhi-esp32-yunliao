@@ -15,7 +15,6 @@
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
-#include "mcp_tools.h"
 
 #define TAG "YunliaoS3"
 

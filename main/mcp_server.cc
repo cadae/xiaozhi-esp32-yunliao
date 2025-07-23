@@ -19,6 +19,14 @@
 #if CONFIG_USE_NEWS
     #include "mcp_news_tools.h"
 #endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    #include "boards/xiaozhiyunliao-s3/xiaozhiyunliao_s3.h"
+    #include "boards/xiaozhiyunliao-s3/xiaoziyunliao_display.h"
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+    #include "boards/xiaozhiyunliao-c3/xiaozhiyunliao_c3.h"
+    #include "boards/xiaozhiyunliao-c3/xiaoziyunliao_display.h"
+#endif
 
 #define TAG "MCP"
 
@@ -108,6 +116,114 @@ void McpServer::AddCommonTools() {
                 return camera->Explain(question);
             });
     }
+#if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    // System control tools
+    AddTool("self.system.reconfigure_wifi",
+        "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+        PropertyList(), [](const PropertyList& properties) {
+            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board->ResetWifiConfiguration();
+            return true;
+        });
+
+    AddTool("self.system.power_off",
+        "Power off the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board->Sleep();
+            return true;
+        });
+
+    AddTool("self.system.restart",
+        "Restart the device after 1-second delay,Requires user confirmation before execution.",
+        PropertyList(), [this](const PropertyList& properties) {
+            ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            esp_restart();
+            return true;
+        });
+
+    // Existing display tools
+    AddTool("self.screen.show_help_page", 
+        "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+            }
+            return true;
+        });
+
+    AddTool("self.screen.show_chat_page", 
+        "Switch to the main chat interface. Use this as the default view for normal conversation.",
+        PropertyList(),
+        [this](const PropertyList& properties) -> ReturnValue {
+            auto display = Board::GetInstance().GetDisplay();
+            if (display) {
+                auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+            }
+            return true;
+        });
+#endif
+#if CONFIG_BOARD_TYPE_YUNLIAO_C3
+        // System control tools
+        AddTool("self.system.reconfigure_wifi",
+            "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
+            PropertyList(), [](const PropertyList& properties) {
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board->ResetWifiConfiguration();
+                return true;
+            });
+
+        AddTool("self.system.power_off",
+            "Power off the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board->Sleep();
+                return true;
+            });
+
+        AddTool("self.system.restart",
+            "Restart the device after 1-second delay,Requires user confirmation before execution.",
+            PropertyList(), [this](const PropertyList& properties) {
+                ESP_LOGI("McpTools", "Delaying restart for 1 seconds");
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                esp_restart();
+                return true;
+            });
+
+        // Existing display tools
+        AddTool("self.screen.show_help_page", 
+            "Switch to the help/configuration page. Use this when user needs to access device settings or help information.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CONFIG);
+                }
+                return true;
+            });
+
+        AddTool("self.screen.show_chat_page", 
+            "Switch to the main chat interface. Use this as the default view for normal conversation.",
+            PropertyList(),
+            [this](const PropertyList& properties) -> ReturnValue {
+                auto display = Board::GetInstance().GetDisplay();
+                if (display) {
+                    auto lcd_display = static_cast<XiaoziyunliaoDisplay*>(display);
+                    lcd_display->SwitchPage(PageIndex::PAGE_CHAT);
+                }
+                return true;
+            });
+#endif
 #if CONFIG_USE_ALARM
     AddTool("self.alarm.set_Alarm",
         "Set an alarm. The alarm will ring at the specified time.\n"
