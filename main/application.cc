@@ -633,7 +633,7 @@ void Application::MainEventLoop() {
                         ESP_LOGI(TAG, "Alarm ring, close audio channel");
                         protocol_->CloseAudioChannel();
                     }
-                    ESP_LOGI(TAG, "Alarm ring, begging status %d", device_state_);
+                    ESP_LOGI(TAG, "Alarm ring, begin status %d", device_state_);
                     SetDeviceState(kDeviceStateAlarm); //强制设置为播放模式
                     auto display = Board::GetInstance().GetDisplay();
                     display->SetChatMessage("system", "");
