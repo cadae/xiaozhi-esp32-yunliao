@@ -2,9 +2,7 @@
 #define XIAOZHIYUNLIAO_C3_H
 
 #include "wifi_board.h"
-#include "audio_codecs/es8311_audio_codec.h"
 #include "button.h"
-#include "iot/thing_manager.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"

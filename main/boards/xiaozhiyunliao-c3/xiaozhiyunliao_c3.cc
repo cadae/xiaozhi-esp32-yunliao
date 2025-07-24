@@ -1,5 +1,5 @@
 #include "wifi_board.h"
-#include "audio_codecs/es8311_audio_codec.h"
+#include "audio/codecs/es8311_audio_codec.h"
 #include "xiaoziyunliao_display.h"
 #include "xiaozhiyunliao_c3.h"
 #include "application.h"
@@ -11,13 +11,11 @@
 #include <ssid_manager.h>
 #include <esp_log.h>
 // #include "i2c_device.h"
-#include "iot/thing_manager.h"
 #include <driver/i2c_master.h>
 #include <esp_sleep.h>
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
-#include "mcp_tools.h"
 
 #define TAG "YunliaoC3"
 
@@ -320,17 +318,6 @@ void XiaoZhiYunliaoC3::InitializeButtons() {
         }
 #endif
     });
-}
-
-void XiaoZhiYunliaoC3::InitializeIot() {
-#if CONFIG_IOT_PROTOCOL_XIAOZHI
-    auto& thing_manager = iot::ThingManager::GetInstance();
-    thing_manager.AddThing(iot::CreateThing("Speaker"));
-    thing_manager.AddThing(iot::CreateThing("LCDScreen"));
-    thing_manager.AddThing(iot::CreateThing("BoardControl"));
-#elif CONFIG_IOT_PROTOCOL_MCP
-    McpTools::GetInstance();
-#endif
 }
 
 void XiaoZhiYunliaoC3::InitializeBattTimers() {
