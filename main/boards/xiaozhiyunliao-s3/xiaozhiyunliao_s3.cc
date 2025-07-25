@@ -243,9 +243,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 #if CONFIG_USE_DEVICE_AEC
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             auto& app = Application::GetInstance();
-            if (app.GetDeviceState() == kDeviceStateIdle) {
-                app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
-            }
+            app.StopListening();
+            app.SetDeviceState(kDeviceStateIdle);
+            app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
             return;
         }
 #endif
