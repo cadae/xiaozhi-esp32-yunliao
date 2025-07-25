@@ -240,6 +240,15 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
+#if CONFIG_USE_DEVICE_AEC
+        if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
+            auto& app = Application::GetInstance();
+            if (app.GetDeviceState() == kDeviceStateIdle) {
+                app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
+            }
+            return;
+        }
+#endif
         SwitchNetworkType();
     });  
     boot_button_.OnFourClick([this]() {

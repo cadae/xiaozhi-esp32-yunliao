@@ -77,7 +77,7 @@
         "MUTED":"已静音",
         "MAX_VOLUME":"最大音量",
 
-        "RTC_MODE_OFF":"AEC 关闭",
-        "RTC_MODE_ON":"AEC 开启"
+        "RTC_MODE_OFF":"唤醒词打断模式",
+        "RTC_MODE_ON":"对话打断模式"
     }
 }
