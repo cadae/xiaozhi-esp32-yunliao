@@ -54,6 +54,10 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         }
     });
 
+    Settings settings("aec", false);
+    auto& app = Application::GetInstance();
+    app.SetAecMode(settings.GetInt("mode",kAecOnDeviceSide) == kAecOnDeviceSide ? kAecOnDeviceSide : kAecOff);
+
 #if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
     InitializeLCDDisplay();
@@ -181,7 +185,17 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
 #endif
         });
         std::string helpMessage = Lang::Strings::HELP4;
-         helpMessage += "\n"; 
+        helpMessage += "\n"; 
+        switch (Application::GetInstance().GetAecMode()) {
+            case kAecOff:
+                helpMessage += Lang::Strings::RTC_MODE_OFF;
+                break;
+            case kAecOnServerSide:
+            case kAecOnDeviceSide:
+                helpMessage += Lang::Strings::RTC_MODE_ON;
+                break;
+            }    
+        helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP1;
         helpMessage += "\n"; 
         helpMessage += Lang::Strings::HELP2;
@@ -246,6 +260,14 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             app.StopListening();
             app.SetDeviceState(kDeviceStateIdle);
             app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
+            Settings settings("aec", true);
+            settings.SetInt("mode", app.GetAecMode());
+            if(app.GetAecMode() == kAecOff){
+                display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
+            }else{
+                display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
+            }
+            display_->SwitchPage();
             return;
         }
 #endif

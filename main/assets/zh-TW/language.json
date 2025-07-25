@@ -8,7 +8,7 @@
         "VERSION1": "第一代",
         "VERSION2": "第二代",
         "VERSION3":"第三代",
-        "HELP1": "單擊按鍵持續對話",
+        "HELP1": "單擊按鍵開始對話",
         "HELP2": "雙擊按鍵進入幫助",
         "HELP3": "控制台",
         "HELP4":"“你好小智”喚醒",
@@ -74,7 +74,7 @@
         "MUTED": "已靜音",
         "MAX_VOLUME": "最大音量",
 
-        "RTC_MODE_OFF": "AEC 關閉",
-        "RTC_MODE_ON": "AEC 開啟"
+        "RTC_MODE_OFF": "語音打斷關閉",
+        "RTC_MODE_ON": "語音打斷開啓"
     }
 }

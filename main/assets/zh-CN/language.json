@@ -8,7 +8,7 @@
         "VERSION1":"第一代",
         "VERSION2":"第二代",
         "VERSION3":"第三代",
-        "HELP1":"单击按键持续对话",
+        "HELP1":"单击按键开始对话",
         "HELP2":"双击按键进入帮助",
         "HELP3":"控制台",
         "HELP4":"“你好小智”唤醒",
@@ -77,7 +77,7 @@
         "MUTED":"已静音",
         "MAX_VOLUME":"最大音量",
 
-        "RTC_MODE_OFF":"唤醒词打断模式",
-        "RTC_MODE_ON":"对话打断模式"
+        "RTC_MODE_OFF":"语音打断关闭",
+        "RTC_MODE_ON":"语音打断开启"
     }
 }
