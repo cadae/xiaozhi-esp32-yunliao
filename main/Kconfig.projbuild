@@ -514,15 +514,6 @@ choice LCD_CONTROLLER
         bool "NC"
 endchoice
 
-config USE_GIF_EMOTION_STYLE
-    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
-    bool "使用GIF表情"
-    select LV_USE_GIF
-    select LV_GIF_CACHE_DECODE_DATA
-    default n
-    help
-        使用GIF表情
-
 config USE_ALARM
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用闹钟功能"
