@@ -22,13 +22,10 @@ private:
     TimerHandle_t batt_ticker_;
     PowerSaveTimer* power_save_timer_;
     
-#if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     XiaoziyunliaoDisplay* display_;
     
     void InitializeSpi();
     void InitializeLCDDisplay();
-#endif
-
     void InitializeI2c();
     void InitializeButtons();
     void InitializeBattMon();
@@ -41,9 +38,7 @@ public:
     XiaoZhiYunliaoC3();
     virtual ~XiaoZhiYunliaoC3() = default;
 
-#if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     virtual Display* GetDisplay() override;
-#endif
     virtual Backlight* GetBacklight() override;
     virtual AudioCodec* GetAudioCodec() override;
     bool GetBatteryLevel(int &level, bool& charging, bool& discharging) override;

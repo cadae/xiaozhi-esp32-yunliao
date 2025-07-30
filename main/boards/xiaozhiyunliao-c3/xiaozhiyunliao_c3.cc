@@ -16,20 +16,15 @@
 #include <string.h> 
 #include <wifi_configuration_ap.h>
 #include <assets/lang_config.h>
+#include <esp_lcd_panel_vendor.h>
+#include <driver/spi_common.h>
 
 #define TAG "YunliaoC3"
 
-#if CONFIG_LCD_CONTROLLER_ILI9341
-    #include <esp_lcd_ili9341.h>
-    #include <driver/spi_common.h>
-#elif CONFIG_LCD_CONTROLLER_ST7789
-    #include <esp_lcd_panel_vendor.h>
-    #include <driver/spi_common.h>
-#endif
 
-    LV_FONT_DECLARE(font_awesome_20_4);
-    LV_FONT_DECLARE(font_puhui_20_4);
-    #define FONT font_puhui_20_4
+LV_FONT_DECLARE(font_awesome_20_4);
+LV_FONT_DECLARE(font_puhui_20_4);
+#define FONT font_puhui_20_4
 
 esp_lcd_panel_handle_t panel = nullptr;
 static QueueHandle_t gpio_evt_queue = NULL;
@@ -72,10 +67,9 @@ XiaoZhiYunliaoC3::XiaoZhiYunliaoC3()
     Start5V();
     InitializeI2c();
     InitializeButtons();
-#if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
     InitializeSpi();
     InitializeLCDDisplay();
-#endif
+
     //电量计算定时任务
     InitializeBattMon();
     InitializeBattTimers();
@@ -148,7 +142,6 @@ void XiaoZhiYunliaoC3::InitializeBattMon() {
     xTaskCreate(&batt_mon_task, "batt_mon_task", 2048, NULL, 10, NULL);
 }
 
-#if defined(CONFIG_LCD_CONTROLLER_ILI9341) || defined(CONFIG_LCD_CONTROLLER_ST7789)
 Display* XiaoZhiYunliaoC3::GetDisplay() {
     return display_;
 }
@@ -172,11 +165,7 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
     esp_lcd_panel_io_spi_config_t io_config = {};
     io_config.cs_gpio_num = DISPLAY_SPI_PIN_LCD_CS;
     io_config.dc_gpio_num = DISPLAY_SPI_PIN_LCD_DC;
-#if CONFIG_LCD_CONTROLLER_ILI9341
-    io_config.spi_mode = 0;
-#elif CONFIG_LCD_CONTROLLER_ST7789
     io_config.spi_mode = 3;
-#endif        
     io_config.pclk_hz = DISPLAY_SPI_CLOCK_HZ;
     io_config.trans_queue_depth = 10;
     io_config.lcd_cmd_bits = 8;
@@ -189,11 +178,7 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
     panel_config.reset_gpio_num = DISPLAY_SPI_PIN_LCD_RST;
     panel_config.bits_per_pixel = 16;
     panel_config.rgb_ele_order = DISPLAY_RGB_ORDER_COLOR;
-#if CONFIG_LCD_CONTROLLER_ILI9341
-    ESP_ERROR_CHECK(esp_lcd_new_panel_ili9341(panel_io, &panel_config, &panel));
-#elif CONFIG_LCD_CONTROLLER_ST7789
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel));
-#endif
     esp_lcd_panel_reset(panel);
     esp_lcd_panel_init(panel);
     esp_lcd_panel_invert_color(panel, DISPLAY_INVERT_COLOR);
@@ -227,7 +212,7 @@ void XiaoZhiYunliaoC3::InitializeLCDDisplay() {
         helpMessage += Lang::Strings::HELP2;
         display_->SetChatMessage("system", helpMessage.c_str());
 }
-#endif    
+
 void XiaoZhiYunliaoC3::Start5V(){
     gpio_set_level(BOOT_5V_GPIO, 1);
 }

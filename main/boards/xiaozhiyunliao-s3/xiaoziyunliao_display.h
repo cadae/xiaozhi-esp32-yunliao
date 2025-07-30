@@ -18,7 +18,8 @@
 
 enum class PageIndex {
     PAGE_CHAT = 0,
-    PAGE_CONFIG = 1
+    PAGE_IDLE = 1,
+    PAGE_CONFIG = 2
 };
 
 class XiaoziyunliaoDisplay : public SpiLcdDisplay {
@@ -28,13 +29,22 @@ public:
                   gpio_num_t backlight_pin, bool backlight_output_invert,
                   int width, int height,  int offset_x, int offset_y, bool mirror_x, bool mirror_y, bool swap_xy,
                   DisplayFonts fonts);
-    void SetupUI() override;
     ~XiaoziyunliaoDisplay() override;
 
+    void SetupUI() override;
     void SetLogo(const char* logo);
     void SetStatus(const char* status) override;
-    virtual void SetChatMessage(const char* role, const char* content) override; 
-    virtual void SetEmotion(const char* emotion) override;
+    void SetChatMessage(const char* role, const char* content) override; 
+    void SetEmotion(const char* emotion) override;
+    void ShowStandbyScreen(bool show) override;
+
+    lv_timer_t *idle_timer_ = nullptr;
+    lv_obj_t * tab_main = nullptr;
+    lv_obj_t * tab_idle = nullptr;
+    lv_obj_t * tab_config = nullptr;
+    lv_obj_t * tabview_ = nullptr;
+    void SetupTabMain();
+    void SetupTabIdle();
 
     PageIndex GetPageIndex() const { return lv_page_index; }
     void SwitchPage(std::optional<PageIndex> target = std::nullopt);
