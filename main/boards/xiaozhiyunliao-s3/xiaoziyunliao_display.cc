@@ -206,7 +206,7 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     // Create weekday label directly on tab_idle
     lv_obj_t *weekday_label = lv_label_create(tab_idle);
     lv_obj_set_style_text_font(weekday_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(weekday_label, lv_color_white(), 0);
+    lv_obj_set_style_text_color(weekday_label, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(weekday_label, LV_OPA_COVER, 0); 
     lv_obj_set_style_bg_color(weekday_label, lv_color_hex(0xFFA500), 0);
     lv_obj_set_style_radius(weekday_label, 3, 0);
