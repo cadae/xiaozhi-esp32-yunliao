@@ -9,9 +9,6 @@
 #include <esp_lvgl_port.h>
 #include "board.h"
 #include <string.h>
-#include "gb2big.h"
-#include <libs/gif/lv_gif.h>
-
 
 #define TAG "YunliaoDisplay"
 
@@ -32,6 +29,15 @@ LV_FONT_DECLARE(time40);
 
 constexpr char CONSOLE_URL[] = "https://xiaozhi.me/console";
 constexpr char WIFI_URL[] = "https://iot.espressif.cn/configWXDeviceWiFi.html";
+
+static void weather_code_to_utf8(uint16_t code, char* buf) {
+    uint32_t unicode = 0xE000 + code;
+    // 转换为UTF-8编码 (三字节格式)
+    buf[0] = 0xE0 | ((unicode >> 12) & 0x0F); // 1110xxxx
+    buf[1] = 0x80 | ((unicode >> 6) & 0x3F);  // 10xxxxxx
+    buf[2] = 0x80 | (unicode & 0x3F);         // 10xxxxxx
+    buf[3] = '\0';
+}
 
 XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
     esp_lcd_panel_io_handle_t panel_io,
@@ -162,11 +168,47 @@ void XiaoziyunliaoDisplay::SetupTabMain() {
 }
 
 void XiaoziyunliaoDisplay::SetupTabIdle() {
+    DisplayLockGuard lock(this);
+
     lv_obj_set_style_text_font(tab_idle, fonts_.text_font, 0);
     lv_obj_set_style_text_color(tab_idle, lv_color_white(), 0);
     lv_obj_set_style_bg_color(tab_idle, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(tab_idle, LV_OPA_COVER, 0); 
   
+    //城市标签
+    lv_obj_t *city_label = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(city_label, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(city_label, lv_color_white(), 0);
+    lv_label_set_text(city_label, "上海");
+    lv_obj_align(city_label, LV_ALIGN_TOP_MID, -60, 0);
+
+    //AQI标签，使用橙色显示
+    lv_obj_t *aqi_label = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(aqi_label, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(aqi_label, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(aqi_label, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(aqi_label, lv_color_hex(0xF1BA3B), 0);
+    lv_obj_set_style_radius(aqi_label, 3, 0);
+    lv_obj_set_style_pad_all(aqi_label, 2, 0);  // 增加内边距
+    lv_obj_set_width(aqi_label, 70);
+    lv_obj_set_style_text_align(aqi_label, LV_TEXT_ALIGN_CENTER, 0);// 设置文本在标签内水平居中
+    lv_label_set_text(aqi_label, "空气良");
+    lv_obj_align(aqi_label, LV_ALIGN_TOP_MID, -60, 30);
+
+    //日期标签
+    lv_obj_t *date_label = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(date_label, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(date_label, lv_color_white(), 0);
+    lv_label_set_text(date_label, "10月1日");
+    lv_obj_align(date_label, LV_ALIGN_TOP_MID, 60, 0);
+    
+    // 周标签
+    lv_obj_t *weekday_label = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(weekday_label, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(weekday_label, lv_color_white(), 0);
+    lv_label_set_text(weekday_label, "周一");
+    lv_obj_align(weekday_label, LV_ALIGN_TOP_MID, 60, 30);
+    
     // 时间标签容器
     lv_obj_t *time_container = lv_obj_create(tab_idle);
     lv_obj_remove_style_all(time_container);  // 移除所有默认样式
@@ -176,7 +218,7 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     lv_obj_set_style_border_width(time_container, 0, 0); // 无边框
     lv_obj_set_flex_flow(time_container, LV_FLEX_FLOW_ROW);// 设置为水平Flex布局
     lv_obj_set_flex_align(time_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_align(time_container, LV_ALIGN_TOP_MID, 0, 35);// 设置容器位置为屏幕中央
+    lv_obj_align(time_container, LV_ALIGN_CENTER, 0, 0);// 设置容器位置为屏幕中央
     
     // 创建小时标签
     lv_obj_t *hour_label = lv_label_create(time_container);
@@ -193,29 +235,59 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     // 创建分钟标签，使用橙色显示
     lv_obj_t *minute_label = lv_label_create(time_container);
     lv_obj_set_style_text_font(minute_label, &time70, 0);
-    lv_obj_set_style_text_color(minute_label, lv_color_white(), 0); // 橙色
+    lv_obj_set_style_text_color(minute_label, lv_color_hex(0xF1BA3B), 0); // 橙色
     lv_label_set_text(minute_label, "00");
 
-    // Create date label directly on tab_idle
-    lv_obj_t *date_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(date_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(date_label, lv_color_white(), 0);
-    lv_label_set_text(date_label, "01/01");
-    lv_obj_align(date_label, LV_ALIGN_CENTER, -60, 10);
-    
-    // Create weekday label directly on tab_idle
-    lv_obj_t *weekday_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(weekday_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(weekday_label, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(weekday_label, LV_OPA_COVER, 0); 
-    lv_obj_set_style_bg_color(weekday_label, lv_color_hex(0xFFA500), 0);
-    lv_obj_set_style_radius(weekday_label, 3, 0);
-    lv_obj_set_style_pad_all(weekday_label, 2, 0);  // 增加内边距
-    lv_obj_set_width(weekday_label, 60);
-    lv_obj_set_style_text_align(weekday_label, LV_TEXT_ALIGN_CENTER, 0);// 设置文本在标签内水平居中
-    lv_label_set_text(weekday_label, "周一");
-    lv_obj_align(weekday_label, LV_ALIGN_CENTER, 60, 10);
-        
+    // 创建天气显示图片
+    lv_obj_t* weather_label1 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(weather_label1, fonts_.weather_64_font, LV_PART_MAIN);
+    lv_obj_align(weather_label1, LV_ALIGN_BOTTOM_MID, -90, -20);
+    // lv_obj_set_style_border_width(weather_label1, 1, 0);
+    // lv_obj_set_style_border_color(weather_label1, lv_color_white(), 0);
+
+    lv_obj_t* weather_label2 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(weather_label2, fonts_.weather_64_font, LV_PART_MAIN);
+    lv_obj_align(weather_label2, LV_ALIGN_BOTTOM_MID, -30, -20);
+    // lv_obj_set_style_border_width(weather_label2, 1, 0);
+    // lv_obj_set_style_border_color(weather_label2, lv_color_white(), 0);
+
+    char icon_buf[4];
+    weather_code_to_utf8(100, icon_buf);
+    lv_label_set_text(weather_label1, icon_buf);
+    weather_code_to_utf8(309, icon_buf);
+    lv_label_set_text(weather_label2, icon_buf);
+
+    // 温度标签
+    lv_obj_t* temperature_label1 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(temperature_label1, fonts_.weather_32_font, LV_PART_MAIN);
+    lv_obj_align(temperature_label1, LV_ALIGN_BOTTOM_MID, 30, -40);
+    // lv_obj_set_style_border_width(temperature_label1, 1, 0);
+    // lv_obj_set_style_border_color(temperature_label1, lv_color_white(), 0);
+    weather_code_to_utf8(900, icon_buf);
+    lv_label_set_text(temperature_label1, icon_buf);
+
+    lv_obj_t *temperature_label2 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(temperature_label2, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(temperature_label2, lv_color_white(), 0);
+    lv_label_set_text(temperature_label2, "20℃~30℃");
+    lv_obj_align(temperature_label2, LV_ALIGN_BOTTOM_MID, 90, -45);
+
+    // 湿度标签
+    lv_obj_t* humidity_label1 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(humidity_label1, fonts_.weather_32_font, LV_PART_MAIN);
+    lv_obj_align(humidity_label1, LV_ALIGN_BOTTOM_MID, 30, -10);
+    // lv_obj_set_style_border_width(humidity_label1, 1, 0);
+    // lv_obj_set_style_border_color(humidity_label1, lv_color_white(), 0);
+    weather_code_to_utf8(901, icon_buf);
+    lv_label_set_text(humidity_label1, icon_buf);
+
+    lv_obj_t *humidity_label2 = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(humidity_label2, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(humidity_label2, lv_color_white(), 0);
+    lv_label_set_text(humidity_label2, "80%");
+    lv_obj_align(humidity_label2, LV_ALIGN_BOTTOM_MID, 70, -15);
+
+
     
     // 定时器更新时间
     static lv_obj_t* hour_lbl = hour_label;

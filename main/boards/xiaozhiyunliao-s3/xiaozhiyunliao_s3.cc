@@ -154,6 +154,8 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
 #else
             .emoji_font = font_emoji_64_init(),
 #endif
+            .weather_64_font = font_weather_64_init(),
+            .weather_32_font = font_weather_32_init(),
         });
         std::string helpMessage = Lang::Strings::HELP4;
         helpMessage += "\n"; 
