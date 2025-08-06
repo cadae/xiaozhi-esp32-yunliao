@@ -9,6 +9,8 @@
 #include <esp_log.h>
 #include <esp_heap_caps.h>
 #include <esp_pthread.h>
+#include <esp_timer.h>
+#include <mbedtls/sha256.h>
 #include <cJSON.h>
 #include <cstring>
 #include <chrono>
@@ -20,6 +22,77 @@
 
 #define TAG "Esp32Music"
 #if CONFIG_USE_MUSIC
+// ========== 简单的ESP32认证函数 ==========
+
+/**
+ * @brief 获取设备芯片ID
+ * @return 芯片ID字符串
+ */
+static std::string get_device_chip_id() {
+    // 使用MAC地址作为芯片ID，去除冒号分隔符
+    std::string mac = SystemInfo::GetMacAddress();
+    // 去除所有冒号
+    mac.erase(std::remove(mac.begin(), mac.end(), ':'), mac.end());
+    return mac;
+}
+
+/**
+ * @brief 生成动态密钥
+ * @param timestamp 时间戳
+ * @return 动态密钥字符串
+ */
+static std::string generate_dynamic_key(int64_t timestamp) {
+    // 密钥（请修改为与服务端一致）
+    const std::string secret_key = "your-esp32-secret-key-2024";
+    
+    // 获取设备信息
+    std::string mac = SystemInfo::GetMacAddress();
+    std::string chip_id = get_device_chip_id();
+    
+    // 组合数据：MAC:芯片ID:时间戳:密钥
+    std::string data = mac + ":" + chip_id + ":" + std::to_string(timestamp) + ":" + secret_key;
+    
+    // SHA256哈希
+    unsigned char hash[32];
+    mbedtls_sha256((unsigned char*)data.c_str(), data.length(), hash, 0);
+    
+    // 转换为十六进制字符串（前16字节）
+    std::string key;
+    for (int i = 0; i < 16; i++) {
+        char hex[3];
+        snprintf(hex, sizeof(hex), "%02X", hash[i]);
+        key += hex;
+    }
+    
+    return key;
+}
+
+/**
+ * @brief 为HTTP请求添加认证头
+ * @param http HTTP客户端指针
+ */
+static void add_auth_headers(Http* http) {
+    // 获取当前时间戳
+    int64_t timestamp = esp_timer_get_time() / 1000000;  // 转换为秒
+    
+    // 生成动态密钥
+    std::string dynamic_key = generate_dynamic_key(timestamp);
+    
+    // 获取设备信息
+    std::string mac = SystemInfo::GetMacAddress();
+    std::string chip_id = get_device_chip_id();
+    
+    // 添加认证头
+    if (http) {
+        http->SetHeader("X-MAC-Address", mac);
+        http->SetHeader("X-Chip-ID", chip_id);
+        http->SetHeader("X-Timestamp", std::to_string(timestamp));
+        http->SetHeader("X-Dynamic-Key", dynamic_key);
+        
+        ESP_LOGI(TAG, "Added auth headers - MAC: %s, ChipID: %s, Timestamp: %s, DynamicKey: %s", 
+                 mac.c_str(), chip_id.c_str(), std::to_string(timestamp).c_str(), dynamic_key.c_str());
+    }
+}
 
 // URL编码函数
 static std::string url_encode(const std::string& str) {
@@ -210,17 +283,20 @@ bool Esp32Music::Download(const std::string& song_name) {
     current_song_name_ = song_name;
     
     // 第一步：请求stream_pcm接口获取音频信息
-    std::string api_url = "http://www.jsrc.top:5566/stream_pcm";
+    std::string api_url = "http://39.172.86.58:5566/stream_pcm";
     std::string full_url = api_url + "?song=" + url_encode(song_name);
     
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
-    auto http = Board::GetInstance().GetNetwork()->CreateHttp(2);
+    auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
     http->SetHeader("Accept", "application/json");
+    
+    // 添加ESP32认证头
+    add_auth_headers(http.get());;
     
     // 打开GET连接
     if (!http->Open("GET", full_url)) {
@@ -242,6 +318,12 @@ bool Esp32Music::Download(const std::string& song_name) {
     
     ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d", status_code, last_downloaded_data_.length());
     ESP_LOGD(TAG, "Complete music details response: %s", last_downloaded_data_.c_str());
+    
+    // 简单的认证响应检查（可选）
+    if (last_downloaded_data_.find("ESP32动态密钥验证失败") != std::string::npos) {
+        ESP_LOGE(TAG, "Authentication failed for song: %s", song_name.c_str());
+        return false;
+    }
     
     if (!last_downloaded_data_.empty()) {
         // 解析响应JSON以提取音频URL
@@ -265,7 +347,7 @@ bool Esp32Music::Download(const std::string& song_name) {
                 ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
                 
                 // 第二步：拼接完整的音频下载URL，确保对audio_url进行URL编码
-                std::string base_url = "http://www.jsrc.top:5566";
+                std::string base_url = "http://39.172.86.58:5566";
                 std::string audio_path = audio_url->valuestring;
                 
                 // 使用统一的URL构建功能
@@ -494,12 +576,15 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
         return;
     }
     
-    auto http = Board::GetInstance().GetNetwork()->CreateHttp(3);
+    auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
     
     // 设置请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
     http->SetHeader("Accept", "*/*");
     http->SetHeader("Range", "bytes=0-");  // 支持断点续传
+    
+    // 添加ESP32认证头
+    add_auth_headers(http.get());;
     
     if (!http->Open("GET", music_url)) {
         ESP_LOGE(TAG, "Failed to connect to music stream URL");
@@ -1003,7 +1088,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         // 使用Board提供的HTTP客户端
-        auto http = Board::GetInstance().GetNetwork()->CreateHttp(4);
+        auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
         if (!http) {
             ESP_LOGE(TAG, "Failed to create HTTP client for lyric download");
             retry_count++;
@@ -1014,6 +1099,9 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
         http->SetHeader("Accept", "text/plain");
         
+        // 添加ESP32认证头
+        add_auth_headers(http.get());;
+
         // 打开GET连接
         // ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
         if (!http->Open("GET", current_url)) {
