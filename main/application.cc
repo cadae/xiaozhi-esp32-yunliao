@@ -119,9 +119,11 @@ void Application::CheckNewVersion(Ota& ota) {
             vTaskDelay(pdMS_TO_TICKS(1000));
 
             bool upgrade_success = ota.StartUpgrade([display](int progress, size_t speed) {
-                char buffer[64];
-                snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
-                display->SetChatMessage("system", buffer);
+                std::thread([display, progress, speed]() {
+                    char buffer[32];
+                    snprintf(buffer, sizeof(buffer), "%d%% %uKB/s", progress, speed / 1024);
+                    display->SetChatMessage("system", buffer);
+                }).detach();
             });
 
             if (!upgrade_success) {
@@ -535,9 +537,6 @@ void Application::Start() {
 
     // Print heap stats
     SystemInfo::PrintHeapStats();
-    ESP_LOGI(TAG, "Application start end");
-    // Enter the main event loop
-    MainEventLoop();
 }
 
 void Application::OnClockTimer() {
