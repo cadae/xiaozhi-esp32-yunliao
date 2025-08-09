@@ -9,13 +9,12 @@
 #include <esp_lvgl_port.h>
 #include "board.h"
 #include <string.h>
+#include "weather_forecast.h"
 
 #define TAG "YunliaoDisplay"
 
 LV_FONT_DECLARE(font_awesome_30_4);
 LV_FONT_DECLARE(time70);
-LV_FONT_DECLARE(time50);
-LV_FONT_DECLARE(time40);
 
 #if defined(ja_jp)
     LV_FONT_DECLARE(font_noto_14_1_ja_jp);
@@ -30,14 +29,16 @@ LV_FONT_DECLARE(time40);
 constexpr char CONSOLE_URL[] = "https://xiaozhi.me/console";
 constexpr char WIFI_URL[] = "https://iot.espressif.cn/configWXDeviceWiFi.html";
 
-static void weather_code_to_utf8(uint16_t code, char* buf) {
-    uint32_t unicode = 0xE000 + code;
-    // 转换为UTF-8编码 (三字节格式)
-    buf[0] = 0xE0 | ((unicode >> 12) & 0x0F); // 1110xxxx
-    buf[1] = 0x80 | ((unicode >> 6) & 0x3F);  // 10xxxxxx
-    buf[2] = 0x80 | (unicode & 0x3F);         // 10xxxxxx
-    buf[3] = '\0';
-}
+#if CONFIG_USE_WEATHER
+    static void weather_code_to_utf8(uint16_t code, char* buf) {
+        uint32_t unicode = 0xE000 + code;
+        // 转换为UTF-8编码 (三字节格式)
+        buf[0] = 0xE0 | ((unicode >> 12) & 0x0F); // 1110xxxx
+        buf[1] = 0x80 | ((unicode >> 6) & 0x3F);  // 10xxxxxx
+        buf[2] = 0x80 | (unicode & 0x3F);         // 10xxxxxx
+        buf[3] = '\0';
+    }
+#endif
 
 XiaoziyunliaoDisplay::XiaoziyunliaoDisplay(
     esp_lcd_panel_io_handle_t panel_io,
@@ -63,47 +64,17 @@ void XiaoziyunliaoDisplay::SetupUI() {
     DisplayLockGuard lock(this);
 
     auto screen = lv_screen_active();
+    lv_obj_set_style_text_font(screen, fonts_.text_font, 0);
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
-
-    // 创建tabview，填充整个屏幕
-    tabview_ = lv_tabview_create(lv_scr_act());
-    lv_obj_set_size(tabview_, lv_pct(100), lv_pct(100));
-    // 隐藏标签栏
-    lv_tabview_set_tab_bar_position(tabview_, LV_DIR_TOP);
-    lv_tabview_set_tab_bar_size(tabview_, 0);
-    lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tabview_);
-    lv_obj_add_flag(tab_btns, LV_OBJ_FLAG_HIDDEN);
-    // 设置tabview的滚动捕捉模式，确保滑动后停留在固定位置
-    lv_obj_t * content = lv_tabview_get_content(tabview_);
-    lv_obj_set_scroll_snap_x(content, LV_SCROLL_SNAP_CENTER);
     
-    // 创建两个TAB页面
-    tab_main = lv_tabview_add_tab(tabview_, "TabMain");
-    tab_idle = lv_tabview_add_tab(tabview_, "TabIdle");
-    lv_obj_clear_flag(tab_main, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(tab_main, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_clear_flag(tab_idle, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(tab_idle, LV_SCROLLBAR_MODE_OFF);
-
-    SetupTabMain();
-    SetupTabIdle();
-}
-
-void XiaoziyunliaoDisplay::SetupTabMain() {
-    DisplayLockGuard lock(this);
-
-    lv_obj_set_style_text_font(tab_main, fonts_.text_font, 0);
-    // lv_obj_set_style_text_color(tab_main, current_theme.text, 0);
-    // lv_obj_set_style_bg_color(tab_main, current_theme.background, 0);
 
     /* Container */
-    container_ = lv_obj_create(tab_main);
+    container_ = lv_obj_create(screen);
     lv_obj_set_size(container_, LV_HOR_RES, LV_VER_RES);
-    lv_obj_set_pos(container_, -13, -13);
     lv_obj_set_flex_flow(container_, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(container_, 0, 0);
     lv_obj_set_style_border_width(container_, 0, 0);
-    lv_obj_set_style_pad_row(container_, 0, 0);//-
+    lv_obj_set_style_pad_row(container_, 0, 0);
 
     /* Status bar */
     status_bar_ = lv_obj_create(container_);
@@ -151,8 +122,51 @@ void XiaoziyunliaoDisplay::SetupTabMain() {
     lv_obj_set_style_pad_left(battery_label_, 3, 0);
     lv_obj_add_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
 
+    // 创建tabview，填充整个屏幕
+    tabview_ = lv_tabview_create(lv_scr_act());
+    lv_obj_set_size(tabview_, LV_HOR_RES, LV_VER_RES - fonts_.text_font->line_height);
+    lv_obj_align_to(tabview_, status_bar_, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);  // 紧贴
+    // 隐藏标签栏
+    lv_tabview_set_tab_bar_position(tabview_, LV_DIR_TOP);
+    lv_tabview_set_tab_bar_size(tabview_, 0);
+    lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tabview_);
+    lv_obj_add_flag(tab_btns, LV_OBJ_FLAG_HIDDEN);
+    // 设置tabview的滚动捕捉模式，确保滑动后停留在固定位置
+    lv_obj_t * content = lv_tabview_get_content(tabview_);
+    lv_obj_set_scroll_snap_x(content, LV_SCROLL_SNAP_CENTER);
+    
+    // 创建两个TAB页面
+    tab_main = lv_tabview_add_tab(tabview_, "TabMain");
+    tab_idle = lv_tabview_add_tab(tabview_, "TabIdle");
+    lv_obj_clear_flag(tab_main, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(tab_main, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_clear_flag(tab_idle, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(tab_idle, LV_SCROLLBAR_MODE_OFF);
+
+    SetupTabMain();
+    SetupTabIdle();
+}
+
+void XiaoziyunliaoDisplay::SetupTabMain() {
+    DisplayLockGuard lock(this);
+
+    lv_obj_set_style_text_font(tab_main, fonts_.text_font, 0);
+    // lv_obj_set_style_text_color(tab_main, current_theme.text, 0);
+    // lv_obj_set_style_bg_color(tab_main, current_theme.background, 0);
+
+    /* Container */
+    chat_container_ = lv_obj_create(tab_main);
+    lv_obj_set_size(chat_container_, LV_HOR_RES, LV_VER_RES - fonts_.text_font->line_height);
+    lv_obj_align_to(tabview_, status_bar_, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); 
+    lv_obj_set_pos(chat_container_, -13, -13);
+    lv_obj_set_flex_flow(chat_container_, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(chat_container_, 0, 0);
+    lv_obj_set_style_border_width(chat_container_, 0, 0);
+    lv_obj_set_style_pad_row(chat_container_, 0, 0);//-
+
+
     /* Content */
-    content_ = lv_obj_create(container_);
+    content_ = lv_obj_create(chat_container_);
     lv_obj_set_scrollbar_mode(content_, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_radius(content_, 0, 0);
     lv_obj_set_width(content_, LV_HOR_RES);
@@ -168,6 +182,7 @@ void XiaoziyunliaoDisplay::SetupTabMain() {
 }
 
 void XiaoziyunliaoDisplay::SetupTabIdle() {
+
     DisplayLockGuard lock(this);
 
     lv_obj_set_style_text_font(tab_idle, fonts_.text_font, 0);
@@ -175,179 +190,254 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     lv_obj_set_style_bg_color(tab_idle, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(tab_idle, LV_OPA_COVER, 0); 
   
-    //城市标签
-    lv_obj_t *city_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(city_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(city_label, lv_color_white(), 0);
-    lv_label_set_text(city_label, "上海");
-    lv_obj_align(city_label, LV_ALIGN_TOP_MID, -60, 0);
-
-    //AQI标签，使用橙色显示
-    lv_obj_t *aqi_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(aqi_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(aqi_label, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(aqi_label, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(aqi_label, lv_color_hex(0xF1BA3B), 0);
-    lv_obj_set_style_radius(aqi_label, 3, 0);
-    lv_obj_set_style_pad_all(aqi_label, 2, 0);  // 增加内边距
-    lv_obj_set_width(aqi_label, 70);
-    lv_obj_set_style_text_align(aqi_label, LV_TEXT_ALIGN_CENTER, 0);// 设置文本在标签内水平居中
-    lv_label_set_text(aqi_label, "空气良");
-    lv_obj_align(aqi_label, LV_ALIGN_TOP_MID, -60, 30);
-
     //日期标签
-    lv_obj_t *date_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(date_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(date_label, lv_color_white(), 0);
-    lv_label_set_text(date_label, "10月1日");
-    lv_obj_align(date_label, LV_ALIGN_TOP_MID, 60, 0);
+    date_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(date_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(date_label_, lv_color_white(), 0);
+    lv_label_set_text(date_label_, "10月1日");
+    lv_obj_align(date_label_, LV_ALIGN_TOP_MID, -60, 0);
     
-    // 周标签
-    lv_obj_t *weekday_label = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(weekday_label, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(weekday_label, lv_color_white(), 0);
-    lv_label_set_text(weekday_label, "周一");
-    lv_obj_align(weekday_label, LV_ALIGN_TOP_MID, 60, 30);
-    
+    // 星期标签
+    weekday_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(weekday_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(weekday_label_, lv_color_white(), 0);
+    lv_label_set_text(weekday_label_, "星期一");
+#if CONFIG_USE_WEATHER
+    lv_obj_align(weekday_label_, LV_ALIGN_TOP_MID, -60, 25);
+#else
+    lv_obj_align(weekday_label_, LV_ALIGN_TOP_MID, 60, 0);
+#endif
+#if CONFIG_USE_WEATHER    
+    //城市标签
+    city_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(city_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(city_label_, lv_color_white(), 0);
+    lv_label_set_text(city_label_, "读取中");
+    lv_obj_align(city_label_, LV_ALIGN_TOP_MID, 60, 0);
+
+    //空气标签
+    aqi_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(aqi_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(aqi_label_, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(aqi_label_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(aqi_label_, lv_color_hex(0x18EB4A), 0);
+    lv_obj_set_style_radius(aqi_label_, 3, 0);
+    lv_obj_set_style_pad_all(aqi_label_, 1, 0);  // 增加内边距
+    lv_obj_set_style_min_width(aqi_label_, 70, 0); 
+    lv_obj_set_style_text_align(aqi_label_, LV_TEXT_ALIGN_CENTER, 0);// 设置文本在标签内水平居中
+    lv_label_set_text(aqi_label_, "空气优");
+    lv_obj_align(aqi_label_, LV_ALIGN_TOP_MID, 60, 25);
+#endif
     // 时间标签容器
-    lv_obj_t *time_container = lv_obj_create(tab_idle);
-    lv_obj_remove_style_all(time_container);  // 移除所有默认样式
-    lv_obj_set_size(time_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT); // 大小根据内容调整
-    lv_obj_set_style_pad_all(time_container, 0, 0); // 无内边距
-    lv_obj_set_style_bg_opa(time_container, LV_OPA_TRANSP, 0); // 透明背景
-    lv_obj_set_style_border_width(time_container, 0, 0); // 无边框
-    lv_obj_set_flex_flow(time_container, LV_FLEX_FLOW_ROW);// 设置为水平Flex布局
-    lv_obj_set_flex_align(time_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_align(time_container, LV_ALIGN_CENTER, 0, 0);// 设置容器位置为屏幕中央
+    lv_obj_t* time_container_ = lv_obj_create(tab_idle);
+    lv_obj_remove_style_all(time_container_);  // 移除所有默认样式
+    lv_obj_set_size(time_container_, LV_SIZE_CONTENT, LV_SIZE_CONTENT); // 大小根据内容调整
+    lv_obj_set_style_pad_all(time_container_, 0, 0); // 无内边距
+    lv_obj_set_style_bg_opa(time_container_, LV_OPA_TRANSP, 0); // 透明背景
+    lv_obj_set_style_border_width(time_container_, 0, 0); // 无边框
+    lv_obj_set_flex_flow(time_container_, LV_FLEX_FLOW_ROW);// 设置为水平Flex布局
+    lv_obj_set_flex_align(time_container_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_align(time_container_, LV_ALIGN_CENTER, 0, -5);// 设置容器位置为屏幕中央
     
     // 创建小时标签
-    lv_obj_t *hour_label = lv_label_create(time_container);
-    lv_obj_set_style_text_font(hour_label, &time70, 0);
-    lv_obj_set_style_text_color(hour_label, lv_color_white(), 0);
-    lv_label_set_text(hour_label, "00 ");
+    hour_label_ = lv_label_create(time_container_);
+    lv_obj_set_style_text_font(hour_label_, &time70, 0);
+    lv_obj_set_style_text_color(hour_label_, lv_color_white(), 0);
+    lv_label_set_text(hour_label_, "00 ");
 
     // 创建冒号标签
-    lv_obj_t *colon_label = lv_label_create(time_container);
-    lv_obj_set_style_text_font(colon_label, &time70, 0);
-    lv_obj_set_style_text_color(colon_label, lv_color_white(), 0);
-    lv_label_set_text(colon_label, ": ");
+    colon_label_ = lv_label_create(time_container_);
+    lv_obj_set_style_text_font(colon_label_, &time70, 0);
+    lv_obj_set_style_text_color(colon_label_, lv_color_white(), 0);
+    lv_label_set_text(colon_label_, ": ");
 
     // 创建分钟标签，使用橙色显示
-    lv_obj_t *minute_label = lv_label_create(time_container);
-    lv_obj_set_style_text_font(minute_label, &time70, 0);
-    lv_obj_set_style_text_color(minute_label, lv_color_hex(0xF1BA3B), 0); // 橙色
-    lv_label_set_text(minute_label, "00");
+    minute_label_ = lv_label_create(time_container_);
+    lv_obj_set_style_text_font(minute_label_, &time70, 0);
+    lv_obj_set_style_text_color(minute_label_, lv_color_hex(0xF1BA3B), 0); // 橙色
+    lv_label_set_text(minute_label_, "00");
+#if CONFIG_USE_WEATHER
+    // 创建天气类型标签
+    weather_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(weather_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(weather_label_, lv_color_black(), 0);
+    // lv_obj_set_style_text_color(weather_label_, lv_color_hex(0x1670F7), 0);
+    lv_obj_set_style_bg_opa(weather_label_, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(weather_label_, lv_color_hex(0xF1BA3B), 0);
+    lv_obj_set_style_radius(weather_label_, 3, 0);
+    lv_obj_set_style_pad_all(weather_label_, 1, 0);  // 增加内边距
+    lv_obj_set_style_min_width(weather_label_, 70, 0); 
+    lv_obj_set_style_text_align(weather_label_, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(weather_label_, "晴");
+    lv_obj_align(weather_label_, LV_ALIGN_BOTTOM_MID, -60, -40);
 
-    // 创建天气显示图片
-    lv_obj_t* weather_label1 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(weather_label1, fonts_.weather_64_font, LV_PART_MAIN);
-    lv_obj_align(weather_label1, LV_ALIGN_BOTTOM_MID, -90, -20);
-    // lv_obj_set_style_border_width(weather_label1, 1, 0);
-    // lv_obj_set_style_border_color(weather_label1, lv_color_white(), 0);
-
-    lv_obj_t* weather_label2 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(weather_label2, fonts_.weather_64_font, LV_PART_MAIN);
-    lv_obj_align(weather_label2, LV_ALIGN_BOTTOM_MID, -30, -20);
-    // lv_obj_set_style_border_width(weather_label2, 1, 0);
-    // lv_obj_set_style_border_color(weather_label2, lv_color_white(), 0);
-
-    char icon_buf[4];
-    weather_code_to_utf8(100, icon_buf);
-    lv_label_set_text(weather_label1, icon_buf);
-    weather_code_to_utf8(309, icon_buf);
-    lv_label_set_text(weather_label2, icon_buf);
+    //风向标签
+    wind_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(wind_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(wind_label_, lv_color_white(), 0);
+    lv_label_set_text(wind_label_, "");
+    lv_obj_align(wind_label_, LV_ALIGN_BOTTOM_MID, -60, -15);
 
     // 温度标签
-    lv_obj_t* temperature_label1 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(temperature_label1, fonts_.weather_32_font, LV_PART_MAIN);
-    lv_obj_align(temperature_label1, LV_ALIGN_BOTTOM_MID, 30, -40);
-    // lv_obj_set_style_border_width(temperature_label1, 1, 0);
-    // lv_obj_set_style_border_color(temperature_label1, lv_color_white(), 0);
+    char icon_buf[4];
+    temperature_label1_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(temperature_label1_, fonts_.weather_32_font, LV_PART_MAIN);
+    lv_obj_align(temperature_label1_, LV_ALIGN_BOTTOM_MID, 10, -35);
     weather_code_to_utf8(900, icon_buf);
-    lv_label_set_text(temperature_label1, icon_buf);
+    lv_label_set_text(temperature_label1_, icon_buf);
 
-    lv_obj_t *temperature_label2 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(temperature_label2, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(temperature_label2, lv_color_white(), 0);
-    lv_label_set_text(temperature_label2, "20℃~30℃");
-    lv_obj_align(temperature_label2, LV_ALIGN_BOTTOM_MID, 90, -45);
+    temperature_label2_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(temperature_label2_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(temperature_label2_, lv_color_white(), 0);
+    lv_label_set_text(temperature_label2_, "");
+    lv_obj_align(temperature_label2_, LV_ALIGN_BOTTOM_MID, 60, -40);
 
     // 湿度标签
-    lv_obj_t* humidity_label1 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(humidity_label1, fonts_.weather_32_font, LV_PART_MAIN);
-    lv_obj_align(humidity_label1, LV_ALIGN_BOTTOM_MID, 30, -10);
-    // lv_obj_set_style_border_width(humidity_label1, 1, 0);
-    // lv_obj_set_style_border_color(humidity_label1, lv_color_white(), 0);
+    humidity_label1_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(humidity_label1_, fonts_.weather_32_font, LV_PART_MAIN);
+    lv_obj_align(humidity_label1_, LV_ALIGN_BOTTOM_MID, 10, -10);
     weather_code_to_utf8(901, icon_buf);
-    lv_label_set_text(humidity_label1, icon_buf);
+    lv_label_set_text(humidity_label1_, icon_buf);
 
-    lv_obj_t *humidity_label2 = lv_label_create(tab_idle);
-    lv_obj_set_style_text_font(humidity_label2, fonts_.text_font, 0);
-    lv_obj_set_style_text_color(humidity_label2, lv_color_white(), 0);
-    lv_label_set_text(humidity_label2, "80%");
-    lv_obj_align(humidity_label2, LV_ALIGN_BOTTOM_MID, 70, -15);
+    humidity_label2_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(humidity_label2_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(humidity_label2_, lv_color_white(), 0);
+    lv_label_set_text(humidity_label2_, "");
+    lv_obj_align(humidity_label2_, LV_ALIGN_BOTTOM_MID, 60, -15);
 
+    //提醒标签
+    hint_label_ = lv_label_create(tab_idle);
+    lv_obj_set_style_text_font(hint_label_, fonts_.text_font, 0);
+    lv_obj_set_style_text_color(hint_label_, lv_color_white(), 0);
+    lv_obj_set_style_text_color(hint_label_, lv_color_hex(0xF1BA3B), 0);
+    lv_label_set_text(hint_label_, "");
+    lv_obj_align(hint_label_, LV_ALIGN_BOTTOM_MID, 0, 15);
+#endif
+}
 
+void XiaoziyunliaoDisplay::UpdateIdleScreen() {
+    // Get current time
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
     
-    // 定时器更新时间
-    static lv_obj_t* hour_lbl = hour_label;
-    static lv_obj_t* minute_lbl = minute_label;
-    static lv_obj_t* date_lbl = date_label;
-    static lv_obj_t* weekday_lbl = weekday_label;
-    static lv_obj_t* colon_lbl = colon_label;
-
-    lv_timer_create([](lv_timer_t *t) {
-        if (!hour_lbl || !minute_lbl || 
-            !date_lbl || !weekday_lbl) return;
-        
-        lv_lock();
-        // Get current time
-        time_t now;
-        struct tm timeinfo;
-        time(&now);
-        localtime_r(&now, &timeinfo);
-        
-        // 格式化时、分、秒
+    lv_lock();
+    // 更新时间
+    if (hour_label_) {
         char hour_str[6];
-        char minute_str[3];
-        char second_str[3];
-        
         sprintf(hour_str, "%02d ", timeinfo.tm_hour);
+        lv_label_set_text(hour_label_, hour_str);
+    }
+    if (minute_label_) {
+        char minute_str[3];
         sprintf(minute_str, "%02d", timeinfo.tm_min);
-        sprintf(second_str, "%02d", timeinfo.tm_sec);
-        
-        // 更新时间标签
-        lv_label_set_text(hour_lbl, hour_str);
-        lv_label_set_text(minute_lbl, minute_str);
-        if(timeinfo.tm_sec % 2 == 0){
-            lv_obj_set_style_text_color(colon_lbl, lv_color_white(), 0);
-        }else{
-            lv_obj_set_style_text_color(colon_lbl, lv_color_black(), 0);
+        lv_label_set_text(minute_label_, minute_str);
+    }
+    if (colon_label_) {
+        if (timeinfo.tm_sec % 2 == 0) {
+            lv_obj_set_style_text_color(colon_label_, lv_color_white(), 0);
+        } else {
+            lv_obj_set_style_text_color(colon_label_, lv_color_black(), 0);
         }
-        
-        // Format date as MM-DD
+    }
+    // 更新日期
+    if (date_label_) {
         char date_str[25];
         snprintf(date_str, sizeof(date_str), "%d月%d日", timeinfo.tm_mon + 1, timeinfo.tm_mday);
-        
-        // Get day of week in Chinese
-        const char *weekdays[] = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-        
-        // Update date and weekday labels
-        lv_label_set_text(date_lbl, date_str);
-        
-        if (timeinfo.tm_wday >= 0 && timeinfo.tm_wday < 7) {
-            lv_label_set_text(weekday_lbl, weekdays[timeinfo.tm_wday]);
+        lv_label_set_text(date_label_, date_str);
+    }
+    // 更新星期
+    if (weekday_label_ && timeinfo.tm_wday >= 0 && timeinfo.tm_wday < 7) {
+        const char *weekdays[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+        lv_label_set_text(weekday_label_, weekdays[timeinfo.tm_wday]);
+    }
+
+#if CONFIG_USE_WEATHER
+    WeatherInfo weatherinfo = WeatherForecast::GetInstance().GetWeatherInfo();
+    int secinter = 1;
+    if(weatherinfo.city_code > 0){
+        secinter = 60;
+    }
+    if (timeinfo.tm_sec % secinter == 0) {
+        WeatherInfo weatherinfo = WeatherForecast::GetInstance().GetWeatherForecast(
+            Board::GetInstance().GetNetwork()->CreateHttp(1));
+        if(weatherinfo.city_code > 0){
+            // 更新城市
+            if (city_label_) {
+                lv_label_set_text(city_label_, weatherinfo.city.c_str());
+            }
+            // 更新AQI
+            if (aqi_label_) {
+                const char *text = weatherinfo.quality.c_str();
+                if (strcmp(text, "优") == 0 || strcmp(text, "良") == 0){
+                    char aqi_str[20];
+                    snprintf(aqi_str, sizeof(aqi_str), "空气%s", text);
+                    lv_label_set_text(aqi_label_, aqi_str);
+                }else{
+                    lv_label_set_text(aqi_label_, text);
+                }
+                // 根据文本设置背景颜色
+                lv_color_t bg_color;
+                if (strcmp(text, "优") == 0) {
+                    bg_color = lv_color_hex(0x18EB4A); // 绿色
+                } else if (strcmp(text, "良") == 0) {
+                    bg_color = lv_color_hex(0xFFF784); // 黄色
+                } else if (strcmp(text, "轻度污染") == 0) {
+                    bg_color = lv_color_hex(0xFF4500); // 橙色
+                } else if (strcmp(text, "中度污染") == 0) {
+                    bg_color = lv_color_hex(0xFF1800); // 红色
+                } else if (strcmp(text, "重度污染") == 0) {
+                    bg_color = lv_color_hex(0xDE71DE); // 深红色
+                } else{
+                    bg_color = lv_color_hex(0xDE71DE); // 紫色
+                }
+                lv_obj_set_style_bg_color(aqi_label_, bg_color, 0);
+            }
+            // 更新天气
+            if (weather_label_) {
+                lv_label_set_text(weather_label_, weatherinfo.weather_type.c_str());
+            }
+            // 更新温度
+            if (temperature_label2_) {
+                char temp_str[30];
+                snprintf(temp_str, sizeof(temp_str), "%s~%s", weatherinfo.low_temp.c_str(), weatherinfo.high_temp.c_str());
+                lv_label_set_text(temperature_label2_, temp_str);
+            }
+            // 更新湿度
+            if (humidity_label2_) {
+                lv_label_set_text(humidity_label2_, weatherinfo.humidity.c_str());
+            }
+            // 更新风向
+            if (wind_label_) {
+                char wind_str[30];
+                snprintf(wind_str, sizeof(wind_str), "%s %s", weatherinfo.wind_direction.c_str(), weatherinfo.wind_power.c_str());
+                lv_label_set_text(wind_label_, wind_str);
+            }
+            // 更新提示
+            if (hint_label_) {
+                lv_label_set_text(hint_label_, weatherinfo.notice.c_str());
+            }
         }
-        
-        lv_unlock();
-    }, 1000, NULL);
+    }
+#endif
+    lv_unlock();
+
 }
+
 void XiaoziyunliaoDisplay::ShowStandbyScreen(bool show) {
     if (tabview_) {
         // 在切换标签页前加锁，防止异常
         lv_lock();
         if (show){
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_IDLE, LV_ANIM_OFF);
+            if (!idle_timer_created_) {
+                auto updateFunc = [](lv_timer_t *t) {
+                    static_cast<XiaoziyunliaoDisplay*>(lv_timer_get_user_data(t))->UpdateIdleScreen();
+                };
+                lv_timer_create(updateFunc, 1000, this);
+                idle_timer_created_ = true;
+            }
         } else {
             lv_tabview_set_act(tabview_, (uint32_t) PageIndex::PAGE_CHAT, LV_ANIM_OFF);
         }

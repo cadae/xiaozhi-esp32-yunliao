@@ -61,7 +61,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 }
 
 void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
-    power_save_timer_ = new PowerSaveTimer(-1, 1, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
+    power_save_timer_ = new PowerSaveTimer(-1, 10, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
     power_save_timer_->OnEnterSleepMode([this]() {
         ESP_LOGI(TAG, "Enabling idle mode");
         GetDisplay()->ShowStandbyScreen(true);
@@ -149,13 +149,10 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
         {                
             .text_font = &FONT,
             .icon_font = &font_awesome_20_4,
-#if CONFIG_USE_WECHAT_MESSAGE_STYLE
-            .emoji_font = font_emoji_32_init(),
-#else
             .emoji_font = font_emoji_64_init(),
-#endif
-            .weather_64_font = font_weather_64_init(),
+#if CONFIG_USE_WEATHER
             .weather_32_font = font_weather_32_init(),
+#endif
         });
         std::string helpMessage = Lang::Strings::HELP4;
         helpMessage += "\n"; 

@@ -500,6 +500,12 @@ choice YUNLIAO_C3_VERSION
         bool "V2"
 endchoice
 
+config USE_WEATHER
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用天气功能"
+    default n
+    help
+        待机界面显示天气信息
 
 config USE_ALARM
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
