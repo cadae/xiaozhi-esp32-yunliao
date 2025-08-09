@@ -115,7 +115,7 @@ void Display::UpdateStatusBar(bool update_all) {
             lv_label_set_text(mute_label_, "");
         }
     }
-
+#ifndef CONFIG_BOARD_TYPE_YUNLIAO_S3
     // Update time
     if (app.GetDeviceState() == kDeviceStateIdle) {
         if (last_status_update_time_ + std::chrono::seconds(10) < std::chrono::system_clock::now()) {
@@ -132,7 +132,7 @@ void Display::UpdateStatusBar(bool update_all) {
             }
         }
     }
-
+#endif
     esp_pm_lock_acquire(pm_lock_);
     // 更新电池图标
     int battery_level;

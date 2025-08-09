@@ -13,6 +13,7 @@ struct DisplayFonts {
     const lv_font_t* text_font = nullptr;
     const lv_font_t* icon_font = nullptr;
     const lv_font_t* emoji_font = nullptr;
+    const lv_font_t* weather_32_font = nullptr;
 };
 
 class Display {
@@ -37,6 +38,7 @@ public:
 #if CONFIG_USE_MUSIC
     virtual void SetMusicInfo(const char* song_name);
 #endif
+    virtual void ShowStandbyScreen(bool show){};
 
 protected:
     int width_ = 0;

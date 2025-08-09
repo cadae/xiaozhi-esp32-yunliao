@@ -508,28 +508,12 @@ choice YUNLIAO_C3_VERSION
         bool "V2"
 endchoice
 
-choice LCD_CONTROLLER
+config USE_WEATHER
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
-    prompt "LCD controller model"
-    default LCD_CONTROLLER_ST7789
-    help
-        液晶型号
-    config LCD_CONTROLLER_ILI9341
-        bool "ILI9341"
-    config LCD_CONTROLLER_ST7789
-        bool "ST7789"
-    config LCD_CONTROLLER_NC
-        bool "NC"
-endchoice
-
-config USE_GIF_EMOTION_STYLE
-    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
-    bool "使用GIF表情"
-    select LV_USE_GIF
-    select LV_GIF_CACHE_DECODE_DATA
+    bool "启用天气功能"
     default n
     help
-        使用GIF表情
+        待机界面显示天气信息
 
 config USE_ALARM
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3

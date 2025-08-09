@@ -27,11 +27,6 @@
 #define MON_USB_PIN				GPIO_NUM_47    	//检测USB插入
 // #define MON_5V_PIN				GPIO_NUM_48    	//检测升压输出
 
-// #define THREE_BUTTON_MODE
-#ifdef THREE_BUTTON_MODE
-    #define VOLUME_UP_BUTTON_GPIO   GPIO_NUM_0
-    #define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_1
-#endif
 
 #define ML307_RX_PIN            GPIO_NUM_16
 #define ML307_TX_PIN            GPIO_NUM_15
@@ -52,17 +47,10 @@
 #define DISPLAY_WIDTH   320
 #define DISPLAY_HEIGHT  240
 #define DISPLAY_SWAP_XY true
-#if CONFIG_LCD_CONTROLLER_ILI9341
-    #define DISPLAY_MIRROR_X true
-    #define DISPLAY_MIRROR_Y true
-    #define DISPLAY_INVERT_COLOR false
-    #define DISPLAY_RGB_ORDER_COLOR LCD_RGB_ELEMENT_ORDER_BGR
-#elif CONFIG_LCD_CONTROLLER_ST7789
-    #define DISPLAY_MIRROR_X false
-    #define DISPLAY_MIRROR_Y true
-    #define DISPLAY_INVERT_COLOR false
-    #define DISPLAY_RGB_ORDER_COLOR LCD_RGB_ELEMENT_ORDER_RGB
-#endif
+#define DISPLAY_MIRROR_X false
+#define DISPLAY_MIRROR_Y true
+#define DISPLAY_INVERT_COLOR false
+#define DISPLAY_RGB_ORDER_COLOR LCD_RGB_ELEMENT_ORDER_RGB
 
 #define DISPLAY_OFFSET_X  0
 #define DISPLAY_OFFSET_Y  0
