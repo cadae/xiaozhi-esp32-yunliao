@@ -344,12 +344,13 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
     // 更新日期
     if (date_label_) {
         char date_str[25];
-        snprintf(date_str, sizeof(date_str), "%d月%d日", timeinfo.tm_mon + 1, timeinfo.tm_mday);
+        snprintf(date_str, sizeof(date_str), Lang::Strings::DATE, timeinfo.tm_mon + 1, timeinfo.tm_mday);
         lv_label_set_text(date_label_, date_str);
     }
     // 更新星期
     if (weekday_label_ && timeinfo.tm_wday >= 0 && timeinfo.tm_wday < 7) {
-        const char *weekdays[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+        const char *weekdays[] = {Lang::Strings::WEEK7, Lang::Strings::WEEK1, Lang::Strings::WEEK2,
+            Lang::Strings::WEEK3, Lang::Strings::WEEK4, Lang::Strings::WEEK5, Lang::Strings::WEEK6};
         lv_label_set_text(weekday_label_, weekdays[timeinfo.tm_wday]);
     }
 
