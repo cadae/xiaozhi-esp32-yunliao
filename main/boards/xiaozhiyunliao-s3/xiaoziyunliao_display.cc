@@ -14,7 +14,7 @@
 #define TAG "YunliaoDisplay"
 
 LV_FONT_DECLARE(font_awesome_30_4);
-LV_FONT_DECLARE(time70);
+LV_FONT_DECLARE(font_num_70_2);
 
 #if defined(ja_jp)
     LV_FONT_DECLARE(font_noto_14_1_ja_jp);
@@ -241,19 +241,19 @@ void XiaoziyunliaoDisplay::SetupTabIdle() {
     
     // 创建小时标签
     hour_label_ = lv_label_create(time_container_);
-    lv_obj_set_style_text_font(hour_label_, &time70, 0);
+    lv_obj_set_style_text_font(hour_label_, &font_num_70_2, 0);
     lv_obj_set_style_text_color(hour_label_, lv_color_white(), 0);
     lv_label_set_text(hour_label_, "00 ");
 
     // 创建冒号标签
     colon_label_ = lv_label_create(time_container_);
-    lv_obj_set_style_text_font(colon_label_, &time70, 0);
+    lv_obj_set_style_text_font(colon_label_, &font_num_70_2, 0);
     lv_obj_set_style_text_color(colon_label_, lv_color_white(), 0);
-    lv_label_set_text(colon_label_, ": ");
+    lv_label_set_text(colon_label_, ":");
 
     // 创建分钟标签，使用橙色显示
     minute_label_ = lv_label_create(time_container_);
-    lv_obj_set_style_text_font(minute_label_, &time70, 0);
+    lv_obj_set_style_text_font(minute_label_, &font_num_70_2, 0);
     lv_obj_set_style_text_color(minute_label_, lv_color_hex(0xF1BA3B), 0); // 橙色
     lv_label_set_text(minute_label_, "00");
 #if CONFIG_USE_WEATHER
