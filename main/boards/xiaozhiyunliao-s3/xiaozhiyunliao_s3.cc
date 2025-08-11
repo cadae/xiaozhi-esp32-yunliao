@@ -29,10 +29,20 @@ esp_lcd_panel_handle_t panel = nullptr;
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
-    power_manager_(new PowerManager()) {  
+    power_manager_(new PowerManager()) {
     power_manager_->Start5V();
     power_manager_->Initialize();
     InitializeI2c();
+    Settings settings1("board", true);
+    if(settings1.GetInt("sleep_flag", 0) > 0){
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        if(boot_button_.getButtonLevel() == 1) {
+            Sleep(); //进入休眠模式
+        }else{
+            settings1.SetInt("sleep_flag", 0);
+        }
+    }
+
     InitializeButtons();
     power_manager_->OnChargingStatusDisChanged([this](bool is_discharging) {
         if(power_save_timer_){
@@ -313,6 +323,8 @@ void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
 
 void XiaoZhiYunliaoS3::Sleep() {
     ESP_LOGI(TAG, "Entering deep sleep");
+    Settings settings("board", true);
+    settings.SetInt("sleep_flag", 1);
 
     Application::GetInstance().StopListening();
     if (auto* codec = GetAudioCodec()) {
