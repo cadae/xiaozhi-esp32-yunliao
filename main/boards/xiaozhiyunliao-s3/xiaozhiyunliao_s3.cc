@@ -37,8 +37,10 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     power_manager_->OnChargingStatusDisChanged([this](bool is_discharging) {
         if(power_save_timer_){
             if (is_discharging) {
+                // ESP_LOGI(TAG, "SetShutdownEnabled");
                 power_save_timer_->SetShutdownEnabled(true);
             } else {
+                // ESP_LOGI(TAG, "SetShutdownDisabled");
                 power_save_timer_->SetShutdownEnabled(false);
             }
         }
@@ -61,14 +63,14 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 }
 
 void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
-    power_save_timer_ = new PowerSaveTimer(-1, 10, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
+    power_save_timer_ = new PowerSaveTimer(-1, 15, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
     power_save_timer_->OnEnterSleepMode([this]() {
-        ESP_LOGI(TAG, "Enabling idle mode");
+        // ESP_LOGI(TAG, "Enabling idle mode");
         GetDisplay()->ShowStandbyScreen(true);
         GetBacklight()->SetBrightness(30);
     });
     power_save_timer_->OnExitSleepMode([this]() {
-        ESP_LOGI(TAG, "Exit idle mode");
+        // ESP_LOGI(TAG, "Exit idle mode");
         GetDisplay()->ShowStandbyScreen(false);
         GetBacklight()->RestoreBrightness();
     });
