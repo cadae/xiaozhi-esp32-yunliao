@@ -153,7 +153,7 @@ void Es8388AudioCodec::EnableInput(bool enable) {
             fs.channel_mask |= ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1);
         }
         ESP_ERROR_CHECK(esp_codec_dev_open(input_dev_, &fs));
-        uint8_t gain = (11 << 4) + 0; //PGA gain L：11 R：0
+        uint8_t gain = (11 << 4) + 0; //PGA gain L：1011/33dB R：0000/0dB
         out_ctrl_if_->write_reg(out_ctrl_if_, 0x09, 1, &gain, 1);
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(input_dev_));
@@ -165,7 +165,6 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
     if (enable == output_enabled_) {
         return;
     }
-    uint8_t reg_val0 = 0;
     if (enable) {
         esp_codec_dev_sample_info_t fs = {
             .bits_per_sample = 16,
@@ -175,25 +174,23 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
             .mclk_multiple = 0,
         };
         ESP_ERROR_CHECK(esp_codec_dev_open(output_dev_, &fs));
-        ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
-        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL
-        out_ctrl_if_->write_reg(out_ctrl_if_, 47, 1, &reg_val0, 1);//ROUT1_VOL
-
+        // ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 47, 1, &reg_val0, 1);//ROUT1_VOL
+        ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
+        uint8_t reg_val = 27 ; // 4.5dB=100001,0dB=11110
+        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL 
         if (pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 1);
         }
-
-        ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
-        uint8_t reg_val = 33; // 4.5dB 100001,0dB 11110
-        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL 
     } else {
-        out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL -45dB 000000
-        ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
-        
-        ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
         if (pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 0);
         }
+        // uint8_t reg_val0 = 0;
+        // out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL -45dB=000000
+        // ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, 0));
+        ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
     }
     AudioCodec::EnableOutput(enable);
 }
