@@ -19,6 +19,9 @@
 #if CONFIG_USE_NEWS
     #include "mcp_news_tools.h"
 #endif
+#if CONFIG_USE_WEATHER
+    #include "weather_forecast.h"
+#endif
 #if CONFIG_BOARD_TYPE_YUNLIAO_S3
     #include "boards/xiaozhiyunliao-s3/xiaozhiyunliao_s3.h"
     #include "boards/xiaozhiyunliao-s3/xiaoziyunliao_display.h"
@@ -117,6 +120,32 @@ void McpServer::AddCommonTools() {
             });
     }
 #if CONFIG_BOARD_TYPE_YUNLIAO_S3
+    #if CONFIG_USE_WEATHER
+    AddTool("self.screen.set_city",
+        "Set the city for weather forecast and return the actual city name used.\n"
+        "Args:\n"
+        "  `city_name`: The name of the city to set (e.g. \"北京\", \"上海市\")\n"
+        "Return:\n"
+        "  JSON object with success status and actual city name",
+        PropertyList({
+            Property("city_name", kPropertyTypeString)
+        }),
+        [](const PropertyList& properties) -> ReturnValue {
+            auto city_name = properties["city_name"].value<std::string>();
+            
+            WeatherInfo result = WeatherForecast::GetInstance().FindCity(
+                Board::GetInstance().GetNetwork()->CreateHttp(1), city_name, false);
+            
+            if (result.city_code == -1) {
+                return "{\"success\": false, \"message\": \"Failed to set city\"}";
+            }
+            Settings settings("display", true);
+            settings.SetBool("use_last", true);
+            settings.SetInt("city_code", result.city_code);
+            return "{\"success\": true, \"city\": \"" + result.city + "\"}";
+        });
+
+    #endif
     // System control tools
     AddTool("self.system.reconfigure_wifi",
         "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",

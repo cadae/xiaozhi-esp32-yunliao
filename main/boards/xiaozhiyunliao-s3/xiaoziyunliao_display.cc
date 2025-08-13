@@ -9,6 +9,7 @@
 #include <esp_lvgl_port.h>
 #include "board.h"
 #include <string.h>
+#include "settings.h"
 #include "weather_forecast.h"
 
 #define TAG "YunliaoDisplay"
@@ -361,9 +362,24 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
         secinter = 60;
     }
     if (timeinfo.tm_sec % secinter == 0) {
+        int32_t city_code = -1;
+
+        Settings settings("display", true);
+        int isUseLast = settings.GetBool("use_last", false);
+        auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+        if (isUseLast || board->GetNetworkType() == NetworkType::ML307) {
+            city_code = settings.GetInt("city_code", -1);
+        }
+        
+        int32_t last_city_code = weatherinfo.city_code;
+        // ESP_LOGI(TAG, "last_city_code: %ld", weatherinfo.city_code);
         WeatherInfo weatherinfo = WeatherForecast::GetInstance().GetWeatherForecast(
-            Board::GetInstance().GetNetwork()->CreateHttp(1));
+            Board::GetInstance().GetNetwork()->CreateHttp(1), city_code);
         if(weatherinfo.city_code > 0){
+            if(weatherinfo.city_code != last_city_code){
+                // ESP_LOGI(TAG, "save city_code: %ld", weatherinfo.city_code);
+                settings.SetInt("city_code", weatherinfo.city_code);
+            }
             // 更新城市
             if (city_label_) {
                 lv_label_set_text(city_label_, weatherinfo.city.c_str());
