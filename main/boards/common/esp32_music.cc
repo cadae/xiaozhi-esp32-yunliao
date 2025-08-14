@@ -1,7 +1,7 @@
 #include "esp32_music.h"
 #include "board.h"
 #include "system_info.h"
-#include "audio_codec.h"
+#include "audio/audio_codec.h"
 #include "application.h"
 #include "protocols/protocol.h"
 #include "display/display.h"
@@ -25,12 +25,24 @@
 // ========== 简单的ESP32认证函数 ==========
 
 /**
+ * @brief 获取设备MAC地址
+ * @return MAC地址字符串
+ */
+static std::string get_device_mac() {
+#if defined(CONFIG_USE_MUSIC_ID)
+    return CONFIG_USE_MUSIC_ID;
+#else
+    return SystemInfo::GetMacAddress();
+#endif
+}
+
+/**
  * @brief 获取设备芯片ID
  * @return 芯片ID字符串
  */
 static std::string get_device_chip_id() {
     // 使用MAC地址作为芯片ID，去除冒号分隔符
-    std::string mac = SystemInfo::GetMacAddress();
+    std::string mac = get_device_mac();
     // 去除所有冒号
     mac.erase(std::remove(mac.begin(), mac.end(), ':'), mac.end());
     return mac;
@@ -46,7 +58,7 @@ static std::string generate_dynamic_key(int64_t timestamp) {
     const std::string secret_key = "your-esp32-secret-key-2024";
     
     // 获取设备信息
-    std::string mac = SystemInfo::GetMacAddress();
+    std::string mac = get_device_mac();
     std::string chip_id = get_device_chip_id();
     
     // 组合数据：MAC:芯片ID:时间戳:密钥
@@ -79,7 +91,7 @@ static void add_auth_headers(Http* http) {
     std::string dynamic_key = generate_dynamic_key(timestamp);
     
     // 获取设备信息
-    std::string mac = SystemInfo::GetMacAddress();
+    std::string mac = get_device_mac();
     std::string chip_id = get_device_chip_id();
     
     // 添加认证头
@@ -89,8 +101,8 @@ static void add_auth_headers(Http* http) {
         http->SetHeader("X-Timestamp", std::to_string(timestamp));
         http->SetHeader("X-Dynamic-Key", dynamic_key);
         
-        ESP_LOGI(TAG, "Added auth headers - MAC: %s, ChipID: %s, Timestamp: %s, DynamicKey: %s", 
-                 mac.c_str(), chip_id.c_str(), std::to_string(timestamp).c_str(), dynamic_key.c_str());
+        // ESP_LOGI(TAG, "Added auth headers - MAC: %s, ChipID: %s, Timestamp: %s, DynamicKey: %s", 
+        //     mac.c_str(), chip_id.c_str(), std::to_string(timestamp).c_str(), dynamic_key.c_str());
     }
 }
 
@@ -289,14 +301,15 @@ bool Esp32Music::Download(const std::string& song_name) {
     ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
-    auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
+    auto network = Board::GetInstance().GetNetwork();
+    auto http = network->CreateHttp(0);
     
-    // 设置请求头
+    // 设置基本请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
     http->SetHeader("Accept", "application/json");
     
     // 添加ESP32认证头
-    add_auth_headers(http.get());;
+    add_auth_headers(http.get());
     
     // 打开GET连接
     if (!http->Open("GET", full_url)) {
@@ -576,15 +589,16 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
         return;
     }
     
-    auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
+    auto network = Board::GetInstance().GetNetwork();
+    auto http = network->CreateHttp(0);
     
-    // 设置请求头
+    // 设置基本请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
     http->SetHeader("Accept", "*/*");
     http->SetHeader("Range", "bytes=0-");  // 支持断点续传
     
     // 添加ESP32认证头
-    add_auth_headers(http.get());;
+    add_auth_headers(http.get());
     
     if (!http->Open("GET", music_url)) {
         ESP_LOGE(TAG, "Failed to connect to music stream URL");
@@ -1088,24 +1102,26 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         }
         
         // 使用Board提供的HTTP客户端
-        auto http = Board::GetInstance().GetNetwork()->CreateHttp(1);
+        auto network = Board::GetInstance().GetNetwork();
+        auto http = network->CreateHttp(0);
         if (!http) {
             ESP_LOGE(TAG, "Failed to create HTTP client for lyric download");
             retry_count++;
             continue;
         }
         
-        // 设置请求头
+        // 设置基本请求头
         http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
         http->SetHeader("Accept", "text/plain");
         
         // 添加ESP32认证头
-        add_auth_headers(http.get());;
-
+        add_auth_headers(http.get());
+        
         // 打开GET连接
         // ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
         if (!http->Open("GET", current_url)) {
             ESP_LOGE(TAG, "Failed to open HTTP connection for lyrics");
+            // 移除delete http; 因为unique_ptr会自动管理内存
             retry_count++;
             continue;
         }
@@ -1367,4 +1383,22 @@ void Esp32Music::UpdateLyricDisplay(int64_t current_time_ms) {
         }
     }
 }
+
+// 删除复杂的认证初始化方法，使用简单的静态函数
+
+// 删除复杂的类方法，使用简单的静态函数
+
+/**
+ * @brief 添加认证头到HTTP请求
+ * @param http_client HTTP客户端指针
+ * 
+ * 添加的认证头包括：
+ * - X-MAC-Address: 设备MAC地址
+ * - X-Chip-ID: 设备芯片ID
+ * - X-Timestamp: 当前时间戳
+ * - X-Dynamic-Key: 动态生成的密钥
+ */
+// 删除复杂的AddAuthHeaders方法，使用简单的静态函数
+
+// 删除复杂的认证验证和配置方法，使用简单的静态函数
 #endif

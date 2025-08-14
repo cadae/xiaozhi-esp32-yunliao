@@ -17,6 +17,7 @@ public:
     virtual bool StopStreaming() = 0;  // 停止流式播放
     virtual size_t GetBufferSize() const = 0;
     virtual bool IsDownloading() const = 0;
+    virtual bool IsPlaying() const = 0;
 };
 
 #endif // MUSIC_H 

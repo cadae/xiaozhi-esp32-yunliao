@@ -76,8 +76,16 @@ void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
     power_save_timer_ = new PowerSaveTimer(-1, 15, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式
     power_save_timer_->OnEnterSleepMode([this]() {
         // ESP_LOGI(TAG, "Enabling idle mode");
+#if CONFIG_USE_MUSIC
+        auto music = GetMusic();
+        if (!(music->IsPlaying() || music->IsDownloading())) {
+            GetDisplay()->ShowStandbyScreen(true);
+            GetBacklight()->SetBrightness(30);
+        }
+#else
         GetDisplay()->ShowStandbyScreen(true);
         GetBacklight()->SetBrightness(30);
+#endif
     });
     power_save_timer_->OnExitSleepMode([this]() {
         // ESP_LOGI(TAG, "Exit idle mode");
