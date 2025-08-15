@@ -138,6 +138,7 @@ void Es8388AudioCodec::SetOutputVolume(int volume) {
 }
 
 void Es8388AudioCodec::EnableInput(bool enable) {
+    std::lock_guard<std::mutex> lock(data_if_mutex_);
     if (enable == input_enabled_) {
         return;
     }
@@ -162,6 +163,7 @@ void Es8388AudioCodec::EnableInput(bool enable) {
 }
 
 void Es8388AudioCodec::EnableOutput(bool enable) {
+    std::lock_guard<std::mutex> lock(data_if_mutex_);
     if (enable == output_enabled_) {
         return;
     }

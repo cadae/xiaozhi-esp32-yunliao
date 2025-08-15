@@ -245,7 +245,7 @@ void MogaiCuicanESP32S3::EnterWifiConfigMode() {
     hint += Lang::Strings::ACCESS_VIA_BROWSER;
     hint += wifi_ap.GetWebServerUrl();
 
-    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "", Lang::Sounds::P3_WIFICONFIG);
+    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "", Lang::Sounds::OGG_WIFICONFIG);
 
     auto display = Board::GetInstance().GetDisplay();
     static_cast<MogaiCuicanDisplay*>(display)->NewSmartConfigPage();

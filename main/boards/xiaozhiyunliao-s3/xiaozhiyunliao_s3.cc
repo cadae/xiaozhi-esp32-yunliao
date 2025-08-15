@@ -316,7 +316,7 @@ void XiaoZhiYunliaoS3::EnterWifiConfigMode() {
     hint += wifi_ap.GetWebServerUrl();
     hint += Lang::Strings::HINT_SHUTDOWN;
     
-    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::P3_WIFICONFIG);
+    application.Alert(Lang::Strings::WIFI_CONFIG_MODE, hint.c_str(), "system", Lang::Sounds::OGG_WIFICONFIG);
 
     auto display = Board::GetInstance().GetDisplay();
     static_cast<XiaoziyunliaoDisplay*>(display)->NewSmartConfigPage();
