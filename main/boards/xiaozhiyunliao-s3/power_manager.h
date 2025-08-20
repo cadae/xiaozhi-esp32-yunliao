@@ -18,6 +18,8 @@ public:
     int GetBatteryLevel();
     void Start5V();
     void Shutdown5V();
+    void Start4G();
+    void Shutdown4G();
     void MCUSleep();
     void CheckBatteryStatus();
     void OnChargingStatusChanged(std::function<void(bool)> callback);

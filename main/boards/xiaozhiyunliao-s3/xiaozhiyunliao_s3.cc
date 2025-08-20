@@ -29,9 +29,11 @@ esp_lcd_panel_handle_t panel = nullptr;
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
     : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
-    power_manager_(new PowerManager()) {
+      power_manager_(new PowerManager()),
+      bt_emitter_(new BT_Emitter(UART_NUM_1, ML307_TX_PIN, ML307_RX_PIN)){
     power_manager_->Start5V();
     power_manager_->Initialize();
+    // power_manager_->Shutdown4G();
     InitializeI2c();
     Settings settings1("board", true);
     if(settings1.GetInt("sleep_flag", 0) > 0){
@@ -69,8 +71,30 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
+    
+    bt_emitter_->setStatusCallback([this](int status){
+        switch (status) {
+            case BT_Emitter::BT_CONNECTED:
+                ESP_LOGI(TAG, "蓝牙已连接");
+                break;
+            case BT_Emitter::BT_NOT_INSTALLED:
+                ESP_LOGI(TAG, "蓝牙未安装");
+                break;
+            // case BT_Emitter::BT_SCAN:
+            //     ESP_LOGI(TAG, "蓝牙扫描中");
+            //     break;
+            case BT_Emitter::BT_DISCONNECTED:
+                ESP_LOGI(TAG, "蓝牙已断开连接");
+                break;
+            default:
+                ESP_LOGI(TAG, "未知状态");
+        }
+    });
+    // bt_emitter_->start();
+
     ESP_LOGI(TAG, "Inited");
 }
+
 
 void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
     power_save_timer_ = new PowerSaveTimer(-1, 15, 600);//修改PowerSaveTimer为sleep=idle模式, shutdown=关机模式

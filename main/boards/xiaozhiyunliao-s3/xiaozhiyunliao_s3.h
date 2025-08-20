@@ -10,6 +10,7 @@
 #include "xiaoziyunliao_display.h"
 #include "power_save_timer.h"
 #include "power_manager.h"
+#include "BT_Emitter.h"
 
 class XiaoziyunliaoDisplay;
 
@@ -19,6 +20,7 @@ private:
     Button boot_button_;
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
+    BT_Emitter* bt_emitter_;
     
     XiaoziyunliaoDisplay* display_;
     
@@ -42,6 +44,7 @@ public:
     std::string GetHardwareVersion() const override;
     void PowerSaveTimerSetEnabled(bool enabled);
     virtual void SetPowerSaveMode(bool enabled) override;
+    BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
 };
 
 #endif // XIAOZHIYUNLIAO_S3_H 
