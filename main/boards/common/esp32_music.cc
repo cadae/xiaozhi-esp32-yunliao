@@ -30,7 +30,11 @@
  */
 static std::string get_device_mac() {
 #if defined(CONFIG_USE_MUSIC_ID)
-    return CONFIG_USE_MUSIC_ID;
+    if (strlen(CONFIG_USE_MUSIC_ID) > 0) {
+        return CONFIG_USE_MUSIC_ID;
+    }else{
+        return SystemInfo::GetMacAddress();
+    }
 #else
     return SystemInfo::GetMacAddress();
 #endif
