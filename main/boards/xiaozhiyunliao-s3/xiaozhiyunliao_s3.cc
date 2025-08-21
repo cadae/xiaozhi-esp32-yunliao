@@ -58,7 +58,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 
     Settings settings("aec", false);
     auto& app = Application::GetInstance();
-    app.SetAecMode(settings.GetInt("mode",kAecOnDeviceSide) == kAecOnDeviceSide ? kAecOnDeviceSide : kAecOff);
+    app.SetAecMode(kAecOff);
 
     InitializeSpi();
     InitializeLCDDisplay();
@@ -84,7 +84,7 @@ void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
         }
 #else
         GetDisplay()->ShowStandbyScreen(true);
-        GetBacklight()->SetBrightness(30);
+        // GetBacklight()->SetBrightness(30);
 #endif
     });
     power_save_timer_->OnExitSleepMode([this]() {
@@ -242,23 +242,6 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
-#if CONFIG_USE_DEVICE_AEC
-        if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            auto& app = Application::GetInstance();
-            app.StopListening();
-            app.SetDeviceState(kDeviceStateIdle);
-            app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
-            Settings settings("aec", true);
-            settings.SetInt("mode", app.GetAecMode());
-            if(app.GetAecMode() == kAecOff){
-                display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
-            }else{
-                display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
-            }
-            display_->SwitchPage();
-            return;
-        }
-#endif
         SwitchNetworkType();
     });  
     boot_button_.OnFourClick([this]() {
