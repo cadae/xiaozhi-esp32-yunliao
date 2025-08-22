@@ -38,24 +38,20 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
 void DualNetworkBoard::InitializeCurrentBoard() {
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
-        current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, ml307_dtr_pin_);
-    // } else {
-    //     ESP_LOGI(TAG, "Initialize WiFi board");
-    //     current_board_ = std::make_unique<WifiBoard>();
+        gpio_set_level(ml307_dtr_pin_, 1); // 启动4G模块
+        current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, GPIO_NUM_NC);
+    } else {
+        gpio_set_level(ml307_dtr_pin_, 0);// 关闭4G模块
+        gpio_set_level(ml307_tx_pin_,1);
+        gpio_set_level(ml307_rx_pin_,1);
     }
 }
 
 void DualNetworkBoard::SwitchNetworkType() {
     auto display = GetDisplay();
-    if (network_type_ == NetworkType::WIFI) {
-        network_type_ = NetworkType::ML307;
-        auto modem = AtModem::Detect(ml307_tx_pin_, ml307_rx_pin_, GPIO_NUM_NC , -1);
-        if(modem){
-            SaveNetworkTypeToSettings(NetworkType::ML307);
-            display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
-        }else{
-            return;
-        }
+    if (network_type_ == NetworkType::WIFI) {    
+        SaveNetworkTypeToSettings(NetworkType::ML307);
+        display->ShowNotification(Lang::Strings::SWITCH_TO_4G_NETWORK);
     } else {
         SaveNetworkTypeToSettings(NetworkType::WIFI);
         display->ShowNotification(Lang::Strings::SWITCH_TO_WIFI_NETWORK);

@@ -44,6 +44,7 @@ public:
     std::string GetHardwareVersion() const override;
     void PowerSaveTimerSetEnabled(bool enabled);
     virtual void SetPowerSaveMode(bool enabled) override;
+    PowerManager* getPowerManager(){ return power_manager_; };
     BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
 };
 

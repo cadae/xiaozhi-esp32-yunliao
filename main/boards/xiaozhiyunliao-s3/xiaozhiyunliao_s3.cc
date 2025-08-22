@@ -27,10 +27,9 @@ LV_FONT_DECLARE(font_puhui_20_4);
 esp_lcd_panel_handle_t panel = nullptr;
 
 XiaoZhiYunliaoS3::XiaoZhiYunliaoS3() 
-    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN),
+    : DualNetworkBoard(ML307_TX_PIN, ML307_RX_PIN, BOOT_4G_PIN),
       boot_button_(BOOT_BUTTON_PIN, false, KEY_EXPIRE_MS),
-      power_manager_(new PowerManager()),
-      bt_emitter_(new BT_Emitter(UART_NUM_1, ML307_TX_PIN, ML307_RX_PIN)){
+      power_manager_(new PowerManager()){
     power_manager_->Start5V();
     power_manager_->Initialize();
     // power_manager_->Shutdown4G();
@@ -71,7 +70,8 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
         GetBacklight()->SetBrightness(60);
     }
     InitializePowerSaveTimer();
-    
+
+    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_TX_PIN, ML307_RX_PIN);
     bt_emitter_->setStatusCallback([this](int status){
         switch (status) {
             case BT_Emitter::BT_CONNECTED:
@@ -266,9 +266,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
     });  
     boot_button_.OnThreeClick([this]() {
         ESP_LOGI(TAG, "Button OnThreeClick");
+        auto& app = Application::GetInstance();
 #if CONFIG_USE_DEVICE_AEC
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
-            auto& app = Application::GetInstance();
             app.StopListening();
             app.SetDeviceState(kDeviceStateIdle);
             app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
@@ -283,7 +283,30 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             return;
         }
 #endif
-        SwitchNetworkType();
+        if(GetNetworkType() == NetworkType::ML307){
+            SwitchNetworkType();
+            return;
+        }
+        if(bt_emitter_->checkStarted()){
+            bt_emitter_->stop();//关蓝牙，打开AEC
+            getPowerManager()->Shutdown4G();
+            app.StopListening();
+            app.SetDeviceState(kDeviceStateIdle);
+            app.SetAecMode(kAecOnDeviceSide);
+            display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
+        }else{
+            getPowerManager()->Start4G();
+            BT_Emitter::modultype modultype = bt_emitter_->checkModul();
+            if (modultype == BT_Emitter::modultype::MODUL_4G) {
+                SwitchNetworkType();
+            }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
+                bt_emitter_->start();//开蓝牙，关AEC
+                app.StopListening();
+                app.SetDeviceState(kDeviceStateIdle);
+                app.SetAecMode(kAecOff);
+                display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
+            }
+        }
     });  
     boot_button_.OnFourClick([this]() {
         ESP_LOGI(TAG, "Button OnFourClick");
