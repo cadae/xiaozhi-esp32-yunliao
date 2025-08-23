@@ -150,8 +150,8 @@ void McpServer::AddCommonTools() {
     AddTool("self.system.reconfigure_wifi",
         "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
         PropertyList(), [](const PropertyList& properties) {
-            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-            board->ResetWifiConfiguration();
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board1->ResetWifiConfiguration();
             return true;
         });
 
@@ -160,8 +160,8 @@ void McpServer::AddCommonTools() {
         PropertyList(), [this](const PropertyList& properties) {
             ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
             vTaskDelay(pdMS_TO_TICKS(1000));
-            auto board = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
-            board->Sleep();
+            auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+            board1->Sleep();
             return true;
         });
 
@@ -204,8 +204,8 @@ void McpServer::AddCommonTools() {
         AddTool("self.system.reconfigure_wifi",
             "Reboot the device and enter WiFi configuration mode,Requires user confirmation before execution.",
             PropertyList(), [](const PropertyList& properties) {
-                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
-                board->ResetWifiConfiguration();
+                auto board1 = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board1->ResetWifiConfiguration();
                 return true;
             });
 
@@ -214,8 +214,8 @@ void McpServer::AddCommonTools() {
             PropertyList(), [this](const PropertyList& properties) {
                 ESP_LOGI("McpTools", "Delaying power off for 1 seconds");
                 vTaskDelay(pdMS_TO_TICKS(1000));
-                auto board = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
-                board->Sleep();
+                auto board1 = static_cast<XiaoZhiYunliaoC3*>(&Board::GetInstance());
+                board1->Sleep();
                 return true;
             });
 
@@ -304,6 +304,36 @@ void McpServer::AddCommonTools() {
 #endif
 #if CONFIG_USE_NEWS
     AddNewsMcpTools();
+#endif
+#if CONFIG_USE_BLUETOOTH
+AddTool("self.system.switch_bluetooth",
+    "Switch Bluetooth on or off.\n"
+    "Args:\n"
+    "  `switch_on`: Boolean value to turn Bluetooth on (true) or off (false).\n"
+    "Return:\n"
+    "  A JSON object that provides the Bluetooth operation status and message.",
+    PropertyList({
+        Property("switch_on", kPropertyTypeBoolean)
+    }),
+    [&board](const PropertyList& properties) -> ReturnValue {
+        bool switch_on = properties["switch_on"].value<bool>();
+        auto board1 = static_cast<XiaoZhiYunliaoS3*>(&Board::GetInstance());
+        XiaoZhiYunliaoS3::BT_STATUS bt_status = board1->SwitchBluetooth(switch_on);
+        ESP_LOGI(TAG, "SwitchBluetooth:%d", (int) bt_status);
+
+        // 根据状态码返回相应的JSON响应
+        switch (bt_status) {
+            case XiaoZhiYunliaoS3::BT_STATUS::SUCCESS:
+                return "{\"success\": true, \"message\": \"Bluetooth operation successful\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STARTED:
+                return "{\"success\": false, \"message\": \"Bluetooth is already on\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::ALREADY_STOPPED:
+                return "{\"success\": false, \"message\": \"Bluetooth is already off\"}";
+            case XiaoZhiYunliaoS3::BT_STATUS::NO_BT_MODULE:
+                return "{\"success\": false, \"message\": \"No Bluetooth module installed\"}";
+        }
+        return "{\"success\": false, \"message\": \"Unknown error occurred\"}";
+    });
 #endif
 
     // Restore the original tools list to the end of the tools list

@@ -14,6 +14,17 @@
 
 #define TAG "Display"
 
+#if CONFIG_USE_BLUETOOTH
+    void Display::ShowBT(bool show){
+        if (show) {
+            lv_obj_clear_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+#endif
+
+
 Display::Display() {
     // Load theme from settings
     Settings settings("display", false);

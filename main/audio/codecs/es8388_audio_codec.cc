@@ -182,7 +182,7 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
         ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
         uint8_t reg_val = 27 ; // 4.5dB=100001,0dB=11110
         out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL 
-        if (pa_pin_ != GPIO_NUM_NC) {
+        if (pa_enabled_ && pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 1);
         }
     } else {
@@ -195,6 +195,12 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
         ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
     }
     AudioCodec::EnableOutput(enable);
+}
+void Es8388AudioCodec::EnablePA(bool enable){
+    pa_enabled_ = enable;
+    if (pa_pin_ != GPIO_NUM_NC && !pa_enabled_ && gpio_get_level(pa_pin_) == 1) {
+        gpio_set_level(pa_pin_, 0);
+    }
 }
 
 int Es8388AudioCodec::Read(int16_t* dest, int samples) {

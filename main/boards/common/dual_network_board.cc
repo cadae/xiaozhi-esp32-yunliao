@@ -38,10 +38,11 @@ void DualNetworkBoard::SaveNetworkTypeToSettings(NetworkType type) {
 void DualNetworkBoard::InitializeCurrentBoard() {
     if (network_type_ == NetworkType::ML307) {
         ESP_LOGI(TAG, "Initialize ML307 board");
-        gpio_set_level(ml307_dtr_pin_, 1); // 启动4G模块
-        current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, GPIO_NUM_NC);
+        if( ml307_dtr_pin_ != GPIO_NUM_NC){
+            gpio_set_level(ml307_dtr_pin_, 1); // 启动4G模块
+        }
+         current_board_ = std::make_unique<Ml307Board>(ml307_tx_pin_, ml307_rx_pin_, GPIO_NUM_NC);
     } else {
-        gpio_set_level(ml307_dtr_pin_, 0);// 关闭4G模块
         gpio_set_level(ml307_tx_pin_,1);
         gpio_set_level(ml307_rx_pin_,1);
     }
