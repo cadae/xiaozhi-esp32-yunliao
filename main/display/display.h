@@ -38,6 +38,9 @@ public:
 #if CONFIG_USE_MUSIC
     virtual void SetMusicInfo(const char* song_name);
 #endif
+#if CONFIG_USE_BLUETOOTH
+    virtual void ShowBT(bool show);
+#endif
     virtual void ShowStandbyScreen(bool show){};
 
 protected:
@@ -52,6 +55,9 @@ protected:
     lv_obj_t *status_label_ = nullptr;
     lv_obj_t *notification_label_ = nullptr;
     lv_obj_t *mute_label_ = nullptr;
+#if CONFIG_USE_BLUETOOTH
+    lv_obj_t *bt_label_ = nullptr;
+#endif
     lv_obj_t *battery_label_ = nullptr;
     lv_obj_t* chat_message_label_ = nullptr;
     lv_obj_t* low_battery_popup_ = nullptr;

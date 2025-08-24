@@ -562,7 +562,7 @@ config USE_ALARM
         一个自定义的闹钟功能
 
 config USE_MUSIC
-    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    depends on BOARD_TYPE_YUNLIAO_S3
     bool "启用音乐播放器功能"
     default n
     help
@@ -573,8 +573,15 @@ config USE_MUSIC_ID
     string "选配音乐播放器ID"
     default ""
     help
-        
-        
+        音乐播放器ID
+
+config USE_BLUETOOTH
+    depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
+    bool "启用蓝牙功能"
+    default n
+    help
+        启用蓝牙功能，允许连接外置蓝牙设备
+                
 config USE_NEWS
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用新闻功能"

@@ -112,6 +112,13 @@ void XiaoziyunliaoDisplay::SetupUI() {
     lv_label_set_text(mute_label_, "");
     lv_obj_set_style_text_font(mute_label_, fonts_.icon_font, 0);
 
+#if CONFIG_USE_BLUETOOTH
+    bt_label_ = lv_label_create(status_bar_);
+    lv_label_set_text(bt_label_, FONT_AWESOME_BLUETOOTH);
+    lv_obj_set_style_text_font(bt_label_, fonts_.icon_font, 0);
+    lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+#endif
+   
     network_label_ = lv_label_create(status_bar_);
     lv_label_set_text(network_label_, "");
     lv_obj_set_style_text_font(network_label_, fonts_.icon_font, 0);

@@ -10,6 +10,7 @@
 #include "xiaoziyunliao_display.h"
 #include "power_save_timer.h"
 #include "power_manager.h"
+#include "BT_Emitter.h"
 
 class XiaoziyunliaoDisplay;
 
@@ -19,9 +20,11 @@ private:
     Button boot_button_;
     PowerSaveTimer* power_save_timer_;
     PowerManager* power_manager_;
+#if CONFIG_USE_BLUETOOTH
+    BT_Emitter* bt_emitter_;
+#endif
     
     XiaoziyunliaoDisplay* display_;
-    
     void InitializeSpi();
     void InitializeLCDDisplay();
     void InitializeI2c();
@@ -29,6 +32,13 @@ private:
     void InitializePowerSaveTimer();
 
 public:
+    enum class BT_STATUS {
+        SUCCESS,            // 操作成功
+        ALREADY_STARTED,    // 蓝牙已开启
+        ALREADY_STOPPED,    // 蓝牙已关闭
+        NO_BT_MODULE,       // 未安装蓝牙模块
+    };
+
     XiaoZhiYunliaoS3();
     virtual ~XiaoZhiYunliaoS3() = default;
 
@@ -42,6 +52,11 @@ public:
     std::string GetHardwareVersion() const override;
     void PowerSaveTimerSetEnabled(bool enabled);
     virtual void SetPowerSaveMode(bool enabled) override;
+    PowerManager* getPowerManager(){ return power_manager_; };
+#if CONFIG_USE_BLUETOOTH
+    BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
+    BT_STATUS SwitchBluetooth(bool switch_on);
+#endif
 };
 
 #endif // XIAOZHIYUNLIAO_S3_H 

@@ -54,11 +54,21 @@ void PowerManager::Initialize(){
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf_5v));
 
+    // 初始化4G控制引脚
+    gpio_config_t io_conf_4g = {
+        .pin_bit_mask = 1<<BOOT_4G_PIN,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf_4g));
+
     // 电池电量监测引脚配置
     gpio_config_t io_conf_batt_mon = {
         .pin_bit_mask = 1ull<<MON_BATT_PIN,
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_POSEDGE,
     };
@@ -149,6 +159,16 @@ void PowerManager::Start5V() {
 
 void PowerManager::Shutdown5V() {
     gpio_set_level(BOOT_5V_PIN, 0);
+}
+
+void PowerManager::Start4G() {
+    gpio_set_level(BOOT_4G_PIN, 1);
+}
+
+void PowerManager::Shutdown4G() {
+    gpio_set_level(BOOT_4G_PIN, 0);
+    gpio_set_level(ML307_RX_PIN,1);
+    gpio_set_level(ML307_TX_PIN,1);
 }
 
 void PowerManager::MCUSleep() {

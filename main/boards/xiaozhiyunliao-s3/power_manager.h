@@ -18,6 +18,8 @@ public:
     int GetBatteryLevel();
     void Start5V();
     void Shutdown5V();
+    void Start4G();
+    void Shutdown4G();
     void MCUSleep();
     void CheckBatteryStatus();
     void OnChargingStatusChanged(std::function<void(bool)> callback);
@@ -26,8 +28,8 @@ private:
     esp_timer_handle_t timer_handle_;
     std::function<void(bool)> charging_callback_;
     std::function<void(bool)> discharging_callback_;
-    bool is_charging_ = false;
-    bool is_discharging_ = true;
+    int is_charging_ = -1;
+    int is_discharging_ = -1;
     int call_count_ = 0;
 };
 
