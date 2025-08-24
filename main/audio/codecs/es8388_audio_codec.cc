@@ -211,7 +211,7 @@ int Es8388AudioCodec::Read(int16_t* dest, int samples) {
 }
 
 int Es8388AudioCodec::Write(const int16_t* data, int samples) {
-    if (output_enabled_) {
+    if (output_enabled_ && output_dev_ && data != nullptr) {
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_codec_dev_write(output_dev_, (void*)data, samples * sizeof(int16_t)));
     }
     return samples;
