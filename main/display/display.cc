@@ -18,7 +18,7 @@
     void Display::ShowBT(bool show){
         DisplayLockGuard lock(this);
         if (show) {
-            lv_obj_clear_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
         } else {
             lv_obj_add_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
         }

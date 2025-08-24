@@ -786,18 +786,18 @@ void XiaoziyunliaoDisplay::ShowChatPage() {
     DisplayLockGuard lock(this);
     if (isActivationStatus()) {
         if (qr_container) {
-            lv_obj_clear_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(qr_container, LV_OBJ_FLAG_HIDDEN);
         }
         if (console_qrcode_) {
-            lv_obj_clear_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(console_qrcode_, LV_OBJ_FLAG_HIDDEN);
         }
     } else {
         if (emotion_label_) {
-            lv_obj_clear_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(emotion_label_, LV_OBJ_FLAG_HIDDEN);
         }
     }
     if (chat_message_label_) {
-        lv_obj_clear_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(chat_message_label_, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -836,7 +836,7 @@ void XiaoziyunliaoDisplay::UpdateStatusBar(bool update_all) {
     if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN)
         && board.GetBatteryLevel(battery_level, charging, discharging)
         && battery_level > 0) {
-        lv_obj_clear_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(battery_label_, LV_OBJ_FLAG_HIDDEN);
     }
     SpiLcdDisplay::UpdateStatusBar(update_all);
 }

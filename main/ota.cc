@@ -210,35 +210,35 @@ bool Ota::CheckVersion() {
         ESP_LOGW(TAG, "No server_time section found!");
     }
 
-    has_new_version_ = false;
-    cJSON *firmware = cJSON_GetObjectItem(root, "firmware");
-    if (cJSON_IsObject(firmware)) {
-        cJSON *version = cJSON_GetObjectItem(firmware, "version");
-        if (cJSON_IsString(version)) {
-            firmware_version_ = version->valuestring;
-        }
-        cJSON *url = cJSON_GetObjectItem(firmware, "url");
-        if (cJSON_IsString(url)) {
-            firmware_url_ = url->valuestring;
-        }
+    // has_new_version_ = false;
+    // cJSON *firmware = cJSON_GetObjectItem(root, "firmware");
+    // if (cJSON_IsObject(firmware)) {
+    //     cJSON *version = cJSON_GetObjectItem(firmware, "version");
+    //     if (cJSON_IsString(version)) {
+    //         firmware_version_ = version->valuestring;
+    //     }
+    //     cJSON *url = cJSON_GetObjectItem(firmware, "url");
+    //     if (cJSON_IsString(url)) {
+    //         firmware_url_ = url->valuestring;
+    //     }
 
-        // if (cJSON_IsString(version) && cJSON_IsString(url)) {
-        //     // Check if the version is newer, for example, 0.1.0 is newer than 0.0.1
-        //     has_new_version_ = IsNewVersionAvailable(current_version_, firmware_version_);
-        //     if (has_new_version_) {
-        //         ESP_LOGI(TAG, "New version available: %s", firmware_version_.c_str());
-        //     } else {
-        //         ESP_LOGI(TAG, "Current is the latest version");
-        //     }
-        //     // If the force flag is set to 1, the given version is forced to be installed
-        //     cJSON *force = cJSON_GetObjectItem(firmware, "force");
-        //     if (cJSON_IsNumber(force) && force->valueint == 1) {
-        //         has_new_version_ = true;
-        //     }
-        // }
-    } else {
-        ESP_LOGW(TAG, "No firmware section found!");
-    }
+    // if (cJSON_IsString(version) && cJSON_IsString(url)) {
+    //     // Check if the version is newer, for example, 0.1.0 is newer than 0.0.1
+    //     has_new_version_ = IsNewVersionAvailable(current_version_, firmware_version_);
+    //     if (has_new_version_) {
+    //         ESP_LOGI(TAG, "New version available: %s", firmware_version_.c_str());
+    //     } else {
+    //         ESP_LOGI(TAG, "Current is the latest version");
+    //     }
+    //     // If the force flag is set to 1, the given version is forced to be installed
+    //     cJSON *force = cJSON_GetObjectItem(firmware, "force");
+    //     if (cJSON_IsNumber(force) && force->valueint == 1) {
+    //         has_new_version_ = true;
+    //     }
+    // }
+    // } else {
+    //     ESP_LOGW(TAG, "No firmware section found!");
+    // }
 
     cJSON_Delete(root);
     return true;
