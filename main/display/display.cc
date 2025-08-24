@@ -16,6 +16,7 @@
 
 #if CONFIG_USE_BLUETOOTH
     void Display::ShowBT(bool show){
+        DisplayLockGuard lock(this);
         if (show) {
             lv_obj_clear_flag(bt_label_, LV_OBJ_FLAG_HIDDEN);
         } else {

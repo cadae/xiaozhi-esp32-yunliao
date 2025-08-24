@@ -759,6 +759,7 @@ void XiaoziyunliaoDisplay::UpdateStatusBar(bool update_all) {
     int battery_level;
     bool charging, discharging;
     
+    DisplayLockGuard lock(this);
     // 添加电池标签显示逻辑
     if (battery_label_ && lv_obj_has_flag(battery_label_, LV_OBJ_FLAG_HIDDEN)
         && board.GetBatteryLevel(battery_level, charging, discharging) 
