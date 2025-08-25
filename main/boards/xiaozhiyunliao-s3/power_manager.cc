@@ -35,7 +35,7 @@ static void calBattLife() {
     if (battLife > 100){
         battLife = 100;
     }
-    ESP_LOGI(TAG, "Battery life:%d", (int)battLife);
+    // ESP_LOGI(TAG, "Battery life:%d", (int)battLife);
     // 重置计数器
     battCnt = 0;
 }

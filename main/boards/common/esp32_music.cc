@@ -302,11 +302,11 @@ bool Esp32Music::Download(const std::string& song_name) {
     std::string api_url = "http://39.172.86.58:5566/stream_pcm";
     std::string full_url = api_url + "?song=" + url_encode(song_name);
     
-    ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
+    // ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
     auto network = Board::GetInstance().GetNetwork();
-    auto http = network->CreateHttp(0);
+    auto http = network->CreateHttp(2);
     
     // 设置基本请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -594,7 +594,7 @@ void Esp32Music::DownloadAudioStream(const std::string& music_url) {
     }
     
     auto network = Board::GetInstance().GetNetwork();
-    auto http = network->CreateHttp(0);
+    auto http = network->CreateHttp(2);
     
     // 设置基本请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
@@ -1081,7 +1081,7 @@ size_t Esp32Music::SkipId3Tag(uint8_t* data, size_t size) {
 
 // 下载歌词
 bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
-    ESP_LOGI(TAG, "Downloading lyrics from: %s", lyric_url.c_str());
+    // ESP_LOGI(TAG, "Downloading lyrics from: %s", lyric_url.c_str());
     
     // 检查URL是否为空
     if (lyric_url.empty()) {
@@ -1107,7 +1107,7 @@ bool Esp32Music::DownloadLyrics(const std::string& lyric_url) {
         
         // 使用Board提供的HTTP客户端
         auto network = Board::GetInstance().GetNetwork();
-        auto http = network->CreateHttp(0);
+        auto http = network->CreateHttp(2);
         if (!http) {
             ESP_LOGE(TAG, "Failed to create HTTP client for lyric download");
             retry_count++;
