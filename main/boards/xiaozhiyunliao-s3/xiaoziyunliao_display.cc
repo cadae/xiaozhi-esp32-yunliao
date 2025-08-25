@@ -10,7 +10,9 @@
 #include "board.h"
 #include <string.h>
 #include "settings.h"
-#include "weather_forecast.h"
+#if CONFIG_USE_WEATHER
+    #include "weather_forecast.h"
+#endif
 
 #define TAG "YunliaoDisplay"
 
