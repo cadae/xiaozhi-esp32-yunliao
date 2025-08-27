@@ -20,6 +20,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+// #define MUSIC_ID =
+
 #define TAG "Esp32Music"
 #if CONFIG_USE_MUSIC
 // ========== 简单的ESP32认证函数 ==========
@@ -29,9 +31,9 @@
  * @return MAC地址字符串
  */
 static std::string get_device_mac() {
-#if defined(CONFIG_USE_MUSIC_ID)
-    if (strlen(CONFIG_USE_MUSIC_ID) > 0) {
-        return CONFIG_USE_MUSIC_ID;
+#if defined(MUSIC_ID)
+    if (strlen(MUSIC_ID) > 0) {
+        return MUSIC_ID;
     }else{
         return SystemInfo::GetMacAddress();
     }
