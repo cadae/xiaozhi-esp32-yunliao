@@ -20,7 +20,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define MUSIC_ID "30:ed:a0:b1:50:88"
+// #define MUSIC_ID ""
 
 #define TAG "Esp32Music"
 #if CONFIG_USE_MUSIC
