@@ -437,6 +437,7 @@ void XiaoZhiYunliaoS3::Sleep() {
     if (panel) {
         esp_lcd_panel_disp_on_off(panel, false);
     }
+    power_manager_->Shutdown4G();
     power_manager_->Shutdown5V();
     power_manager_->MCUSleep();
 }
