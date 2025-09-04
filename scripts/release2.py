@@ -8,24 +8,22 @@ import re
 current_lang = None
 
 def read_mac_addresses(file_path):
-    """读取MAC地址文件，返回MAC地址列表"""
     mac_addresses = []
     try:
         with open(file_path, 'r') as f:
             for line in f:
                 line = line.strip()
-                # 验证MAC地址格式 (XX:XX:XX:XX:XX:XX)
+                # 验证地址格式 (XX:XX:XX:XX:XX:XX)
                 if re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', line):
                     mac_addresses.append(line)
                 else:
-                    print(f"警告: 跳过无效的MAC地址格式: {line}")
+                    print(f"警告: 跳过无效的地址格式: {line}")
     except FileNotFoundError:
         print(f"错误: 找不到文件 {file_path}")
         return None
     return mac_addresses
 
 def modify_music_id(mac_address, music_file_path):
-    """修改esp32_music.cc文件中的MUSIC_ID定义"""
     try:
         with open(music_file_path, 'r') as f:
             content = f.read()
@@ -74,7 +72,7 @@ def generate_firmware(lang, mac_address):
     """调用原始release.py生成固件"""
     global current_lang
     
-    # 去掉MAC地址中的冒号
+    # 去掉地址中的冒号
     mac_suffix = mac_address.replace(':', '')
     
     # 检查语言是否改变
@@ -144,23 +142,23 @@ def main():
     mac_tw_file = os.path.join("..", "xiaozhi-fonts", "MAC_tw.txt")
     music_file = os.path.join("main", "boards", "common", "esp32_music.cc")
     
-    # 读取MAC地址
+    # 读取地址
     cn_macs = read_mac_addresses(mac_cn_file)
     tw_macs = read_mac_addresses(mac_tw_file)
     
     if cn_macs is None or tw_macs is None:
-        print("错误: 无法读取MAC地址文件")
+        print("错误: 无法读取地址文件")
         sys.exit(1)
     
     if not cn_macs and not tw_macs:
-        print("错误: 没有找到有效的MAC地址")
+        print("错误: 没有找到有效的地址")
         sys.exit(1)
     
-    print(f"找到 {len(cn_macs)} 个中文MAC地址和 {len(tw_macs)} 个繁体中文MAC地址")
+    print(f"找到 {len(cn_macs)} 个中文地址和 {len(tw_macs)} 个繁体中文地址")
     
-    # 处理中文MAC地址
+    # 处理中文地址
     for mac in cn_macs:
-        print(f"\n处理中文MAC地址: {mac}")
+        print(f"\n处理中文地址: {mac}")
         
         # 修改MUSIC_ID
         if not modify_music_id(mac, music_file):
@@ -168,16 +166,16 @@ def main():
         
         # 生成固件
         if generate_firmware("cn", mac):
-            print(f"成功为MAC地址 {mac} 生成中文固件")
+            print(f"成功为地址 {mac} 生成中文固件")
         else:
-            print(f"为MAC地址 {mac} 生成中文固件失败")
+            print(f"为地址 {mac} 生成中文固件失败")
         
         # 恢复MUSIC_ID
         restore_music_id(music_file)
     
-    # 处理繁体中文MAC地址
+    # 处理繁体中文地址
     for mac in tw_macs:
-        print(f"\n处理繁体中文MAC地址: {mac}")
+        print(f"\n处理繁体中文地址: {mac}")
         
         # 修改MUSIC_ID
         if not modify_music_id(mac, music_file):
@@ -185,14 +183,14 @@ def main():
         
         # 生成固件
         if generate_firmware("tw", mac):
-            print(f"成功为MAC地址 {mac} 生成繁体中文固件")
+            print(f"成功为地址 {mac} 生成繁体中文固件")
         else:
-            print(f"为MAC地址 {mac} 生成繁体中文固件失败")
+            print(f"为地址 {mac} 生成繁体中文固件失败")
         
         # 恢复MUSIC_ID
         restore_music_id(music_file)
     
-    print("\n所有MAC地址处理完成")
+    print("\n所有地址处理完成")
 
 if __name__ == "__main__":
     main()
