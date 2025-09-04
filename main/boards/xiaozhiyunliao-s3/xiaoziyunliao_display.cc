@@ -379,7 +379,7 @@ void XiaoziyunliaoDisplay::UpdateIdleScreen() {
         }
         
         int32_t last_city_code = weatherinfo.city_code;
-        ESP_LOGI(TAG, "last_city_code: %ld", weatherinfo.city_code);
+        // ESP_LOGI(TAG, "last_city_code: %ld", weatherinfo.city_code);
         WeatherInfo weatherinfo = WeatherForecast::GetInstance().GetWeatherForecast(
             Board::GetInstance().GetNetwork()->CreateHttp(0), city_code);
 
