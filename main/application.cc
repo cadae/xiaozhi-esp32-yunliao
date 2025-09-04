@@ -780,12 +780,12 @@ void Application::SetDeviceState(DeviceState state) {
             }
             audio_service_.ResetDecoder();
             break;
-            #if CONFIG_USE_ALARM
+#if CONFIG_USE_ALARM
             case kDeviceStateAlarm:
                 audio_service_.ResetDecoder();
                 codec->EnableOutput(true);
                 break;
-    #endif
+#endif
             default:
             // Do nothing
             break;

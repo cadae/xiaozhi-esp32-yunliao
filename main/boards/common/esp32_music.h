@@ -26,6 +26,13 @@ struct AudioChunk {
 };
 
 class Esp32Music : public Music {
+public:
+    // 显示模式控制 - 移动到public区域
+    enum DisplayMode {
+        DISPLAY_MODE_SPECTRUM = 0,  // 默认显示频谱
+        DISPLAY_MODE_LYRICS = 1     // 显示歌词
+    };
+
 private:
     std::string last_downloaded_data_;
     std::string current_music_url_;
@@ -39,6 +46,8 @@ private:
     std::atomic<int> current_lyric_index_;
     std::thread lyric_thread_;
     std::atomic<bool> is_lyric_running_;
+    
+    std::atomic<DisplayMode> display_mode_;
     std::atomic<bool> is_playing_;
     std::atomic<bool> is_downloading_;
     std::thread play_thread_;
@@ -52,8 +61,8 @@ private:
     std::mutex buffer_mutex_;
     std::condition_variable buffer_cv_;
     size_t buffer_size_;
-    static constexpr size_t MAX_BUFFER_SIZE = 512 * 1024;  // 512KB缓冲区
-    static constexpr size_t MIN_BUFFER_SIZE = 64 * 1024;   // 64KB最小播放缓冲
+    static constexpr size_t MAX_BUFFER_SIZE = 256 * 1024;  // 256KB缓冲区（降低以减少brownout风险）
+    static constexpr size_t MIN_BUFFER_SIZE = 32 * 1024;   // 32KB最小播放缓冲（降低以减少brownout风险）
     
     // MP3解码器相关
     HMP3Decoder mp3_decoder_;
@@ -77,13 +86,15 @@ private:
     // ID3标签处理
     size_t SkipId3Tag(uint8_t* data, size_t size);
 
+    int16_t* final_pcm_data_fft = nullptr;
+
 public:
     Esp32Music();
     ~Esp32Music();
 
-    virtual bool Download(const std::string& song_name) override;
-    virtual bool Play() override;
-    virtual bool Stop() override;
+    virtual bool Download(const std::string& song_name, const std::string& artist_name) override;
+  
+								 
     virtual std::string GetDownloadResult() override;
     
     // 新增方法
@@ -91,7 +102,11 @@ public:
     virtual bool StopStreaming() override;  // 停止流式播放
     virtual size_t GetBufferSize() const override { return buffer_size_; }
     virtual bool IsDownloading() const override { return is_downloading_; }
-    virtual bool IsPlaying() const override { return is_playing_; }
+    virtual int16_t* GetAudioData() override { return final_pcm_data_fft; }
+    
+    // 显示模式控制方法
+    void SetDisplayMode(DisplayMode mode);
+    DisplayMode GetDisplayMode() const { return display_mode_.load(); }
 };
 
 #endif // ESP32_MUSIC_H

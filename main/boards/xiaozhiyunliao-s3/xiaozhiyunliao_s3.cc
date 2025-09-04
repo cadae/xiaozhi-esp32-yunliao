@@ -113,7 +113,7 @@ void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
         // ESP_LOGI(TAG, "Enabling idle mode");
 #if CONFIG_USE_MUSIC
         auto music = GetMusic();
-        if (!(music->IsPlaying() || music->IsDownloading())) {
+        if (!music->IsDownloading()) {
             GetDisplay()->ShowStandbyScreen(true);
             GetBacklight()->SetBrightness(30);
         }
