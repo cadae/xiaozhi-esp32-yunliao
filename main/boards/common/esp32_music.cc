@@ -179,7 +179,14 @@ Esp32Music::Esp32Music() : last_downloaded_data_(), current_music_url_(), curren
                          play_thread_(), download_thread_(), audio_buffer_(), buffer_mutex_(), 
                          buffer_cv_(), buffer_size_(0), mp3_decoder_(nullptr), mp3_frame_info_(), 
                          mp3_decoder_initialized_(false) {
-    ESP_LOGI(TAG, "Music player initialized with default spectrum display mode");
+    Settings settings("display", false);
+    bool isLyric = settings.GetBool("is_lyric", true);
+    if(isLyric){
+        display_mode_ = DISPLAY_MODE_LYRICS;
+    }else{
+        display_mode_ = DISPLAY_MODE_SPECTRUM;
+    }
+    ESP_LOGI(TAG, "Music player initialized with default %s display mode", isLyric ? "LYRICS" : "SPECTRUM");
     InitializeMp3Decoder();
 }
 
@@ -1418,29 +1425,12 @@ void Esp32Music::UpdateLyricDisplay(int64_t current_time_ms) {
         }
     }
 }
-
-// 删除复杂的认证初始化方法，使用简单的静态函数
-
-// 删除复杂的类方法，使用简单的静态函数
-
-/**
- * @brief 添加认证头到HTTP请求
- * @param http_client HTTP客户端指针
- * 
- * 添加的认证头包括：
- * - X-MAC-Address: 设备MAC地址
- * - X-Chip-ID: 设备芯片ID
- * - X-Timestamp: 当前时间戳
- * - X-Dynamic-Key: 动态生成的密钥
- */
-// 删除复杂的AddAuthHeaders方法，使用简单的静态函数
-
-// 删除复杂的认证验证和配置方法，使用简单的静态函数
-
 // 显示模式控制方法实现
 void Esp32Music::SetDisplayMode(DisplayMode mode) {
     DisplayMode old_mode = display_mode_.load();
     display_mode_ = mode;
+    Settings settings("display", true);
+    settings.SetBool("is_lyric", mode == DISPLAY_MODE_LYRICS);
     
     ESP_LOGI(TAG, "Display mode changed from %s to %s", 
             (old_mode == DISPLAY_MODE_SPECTRUM) ? "SPECTRUM" : "LYRICS",
