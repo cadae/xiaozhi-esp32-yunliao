@@ -37,6 +37,9 @@ public:
     inline int height() const { return height_; }
 #if CONFIG_USE_MUSIC
     virtual void SetMusicInfo(const char* song_name);
+    virtual void start() {}
+    virtual void clearScreen() {}  // 清除FFT显示，默认为空实现
+    virtual void stopFft() {}      // 停止FFT显示，默认为空实现
 #endif
 #if CONFIG_USE_BLUETOOTH
     virtual void ShowBT(bool show);

@@ -568,13 +568,6 @@ config USE_MUSIC
     help
         启用音乐播放器功能，允许播放在线音乐。需后台配置
 
-config USE_MUSIC_ID
-    depends on USE_MUSIC
-    string "选配音乐播放器ID"
-    default ""
-    help
-        音乐播放器ID
-
 config USE_BLUETOOTH
     depends on BOARD_TYPE_YUNLIAO_C3 || BOARD_TYPE_YUNLIAO_S3
     bool "启用蓝牙功能"
