@@ -127,10 +127,10 @@ void XiaoZhiYunliaoS3::InitializePowerSaveTimer() {
         GetDisplay()->ShowStandbyScreen(false);
         GetBacklight()->RestoreBrightness();
     });
-    power_save_timer_->OnShutdownRequest([this]() {
-        ESP_LOGI(TAG, "Shutting down");
-        Sleep();
-    });
+    // power_save_timer_->OnShutdownRequest([this]() {
+    //     ESP_LOGI(TAG, "Shutting down");
+    //     Sleep();
+    // });
     power_save_timer_->SetEnabled(true);
 }
 
