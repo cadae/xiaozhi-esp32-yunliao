@@ -180,7 +180,7 @@ void Es8388AudioCodec::EnableOutput(bool enable) {
         // out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val0, 1);//LOUT1_VOL
         // out_ctrl_if_->write_reg(out_ctrl_if_, 47, 1, &reg_val0, 1);//ROUT1_VOL
         ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
-        uint8_t reg_val = 27 ; // 4.5dB=100001,0dB=11110
+        uint8_t reg_val = 0B11110 ; // 4.5dB=100001,0dB=11110,27=11011
         out_ctrl_if_->write_reg(out_ctrl_if_, 46, 1, &reg_val, 1);//LOUT1_VOL 
         if (pa_enabled_ && pa_pin_ != GPIO_NUM_NC) {
             gpio_set_level(pa_pin_, 1);

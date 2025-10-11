@@ -5,9 +5,9 @@
     "strings": {
         "WAKE_WORD":"Hello",
         "LOGO": "YunLiao",
-        "VERSION1":" Ver1",
-        "VERSION2":" Ver2",
-        "VERSION3":" Ver3",
+        "VERSION1":" C3 Ver1",
+        "VERSION2":" C3 Ver2",
+        "VERSION3":" S3",
         "HELP1":"Click to enter conversation mode",
         "HELP2":"Double click to enter the help",
         "HELP3":"Console",
