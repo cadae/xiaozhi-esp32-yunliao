@@ -32,7 +32,6 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
       power_manager_(new PowerManager()){
     power_manager_->Start5V();
     power_manager_->Initialize();
-    // power_manager_->Shutdown4G();
     InitializeI2c();
     Settings settings1("board", true);
     if(settings1.GetInt("sleep_flag", 0) > 0){
@@ -75,7 +74,7 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
     InitializePowerSaveTimer();
 
 #if CONFIG_USE_BLUETOOTH
-    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN);
+    bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN, MON_BTLINK_PIN);
     bt_emitter_->setStatusCallback([this](int status){
         auto& app = Application::GetInstance();
         auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
@@ -302,8 +301,8 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         }
         if(bt_emitter_->checkStarted()){
             bt_emitter_->stop();//关蓝牙，打开AEC
-            display_->ShowBT(false);
             getPowerManager()->Shutdown4G();
+            display_->ShowBT(false);
         }else{
             getPowerManager()->Start4G();
             BT_Emitter::modultype modultype = bt_emitter_->getModulType();
@@ -348,6 +347,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
                     return BT_STATUS::SUCCESS;
                 } else {
                     // 未安装蓝牙模块
+                    bt_emitter_->stop();
                     getPowerManager()->Shutdown4G();
                     return BT_STATUS::NO_BT_MODULE;
                 }

@@ -74,7 +74,7 @@ void PowerManager::Initialize(){
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf_batt_mon));
     // 创建电量GPIO事件队列
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(1, sizeof(uint32_t));
     // 安装电量GPIO ISR服务
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     // 添加中断处理
@@ -167,8 +167,6 @@ void PowerManager::Start4G() {
 
 void PowerManager::Shutdown4G() {
     gpio_set_level(BOOT_4G_PIN, 0);
-    gpio_set_level(ML307_RX_PIN,1);
-    gpio_set_level(ML307_TX_PIN,1);
 }
 
 void PowerManager::MCUSleep() {
