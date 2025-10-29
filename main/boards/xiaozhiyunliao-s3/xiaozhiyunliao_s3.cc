@@ -2,7 +2,6 @@
 #include "codecs/es8388_audio_codec.h"
 #include "xiaoziyunliao_display.h"
 #include "xiaozhiyunliao_s3.h"
-#include "application.h"
 #include "button.h"
 #include "settings.h"
 #include "config.h"
@@ -76,26 +75,14 @@ XiaoZhiYunliaoS3::XiaoZhiYunliaoS3()
 #if CONFIG_USE_BLUETOOTH
     bt_emitter_= new BT_Emitter(UART_NUM_1, ML307_RX_PIN, ML307_TX_PIN, MON_BTLINK_PIN);
     bt_emitter_->setStatusCallback([this](int status){
-        auto& app = Application::GetInstance();
-        auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
         switch (status) {
             case BT_Emitter::BT_CONNECTED:
                 ESP_LOGI(TAG, "蓝牙已连接");
-                codec->EnablePA(false);
-                if(app.GetAecMode() == kAecOnDeviceSide){
-                    app.SetAecMode(kAecOff);
-                    display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
-                }
+                switchBtMode(true);
                 break;
             case BT_Emitter::BT_DISCONNECTED:
-                ESP_LOGI(TAG, "蓝牙未连接");
-                codec->EnablePA(true);
-                if(app.GetAecMode() == kAecOff){
-                    // app.StopListening();
-                    // app.SetDeviceState(kDeviceStateIdle);
-                    app.SetAecMode(kAecOnDeviceSide);
-                    display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
-                }
+                ESP_LOGI(TAG, "蓝牙已断开");
+                switchBtMode(false);
                 break;
             case BT_Emitter::BT_NOT_INSTALLED:
                 ESP_LOGI(TAG, "蓝牙未安装");
@@ -279,16 +266,10 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 #if CONFIG_USE_DEVICE_AEC
         if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
             auto& app = Application::GetInstance();
-            app.StopListening();
-            app.SetDeviceState(kDeviceStateIdle);
-            app.SetAecMode(app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff);
+            AecMode newMode = app.GetAecMode() == kAecOff ? kAecOnDeviceSide : kAecOff;
+            switchAecMode(newMode);
             Settings settings("aec", true);
-            settings.SetInt("mode", app.GetAecMode());
-            if(app.GetAecMode() == kAecOff){
-                display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
-            }else{
-                display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
-            }
+            settings.SetInt("mode", newMode);
             display_->SwitchPage();
             return;
         }
@@ -303,6 +284,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             bt_emitter_->stop();//关蓝牙，打开AEC
             getPowerManager()->Shutdown4G();
             display_->ShowBT(false);
+            //强制关闭蓝牙模式
+            switchBtMode(false);
+            ESP_LOGI(TAG, "蓝牙已手动关闭");
         }else{
             getPowerManager()->Start4G();
             BT_Emitter::modultype modultype = bt_emitter_->getModulType();
@@ -314,6 +298,7 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
             }else if (modultype == BT_Emitter::modultype::MODUL_BT) {
                 bt_emitter_->start();//开蓝牙，关AEC
                 display_->ShowBT(true);
+                ESP_LOGI(TAG, "蓝牙已手动开启");
             }
         }
 #else
@@ -367,6 +352,41 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         }
     }
 #endif
+
+void XiaoZhiYunliaoS3::switchBtMode(bool enable) {
+    auto& app = Application::GetInstance();
+    auto codec = static_cast<Es8388AudioCodec*>(GetAudioCodec());
+    
+    if (enable) {
+        // 启用蓝牙模式
+        if(app.GetAecMode() != kAecOff){
+            switchAecMode(kAecOff);
+        }
+        codec->EnablePA(false);
+    } else {
+        // 禁用蓝牙模式
+        Settings settings("aec", false);
+        int storedMode = settings.GetInt("mode", kAecOff);
+        if(storedMode != kAecOff && app.GetAecMode() == kAecOff){
+            switchAecMode((AecMode)storedMode);
+        }
+        codec->EnablePA(true);
+    }
+}
+
+void XiaoZhiYunliaoS3::switchAecMode(AecMode mode) {
+    auto& app = Application::GetInstance();
+    app.StopListening();
+    app.SetDeviceState(kDeviceStateIdle);
+    // 直接使用传入的 mode 参数设置 AEC 模式
+    app.SetAecMode(mode);
+    // 显示通知
+    if (mode != kAecOff) {
+        display_->ShowNotification(Lang::Strings::RTC_MODE_ON);
+    } else {
+        display_->ShowNotification(Lang::Strings::RTC_MODE_OFF);
+    }
+}
 
 AudioCodec* XiaoZhiYunliaoS3::GetAudioCodec() {
     static Es8388AudioCodec audio_codec(

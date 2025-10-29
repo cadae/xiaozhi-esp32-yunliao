@@ -1,6 +1,6 @@
 #ifndef XIAOZHIYUNLIAO_S3_H
 #define XIAOZHIYUNLIAO_S3_H
-
+#include "application.h"
 #include "dual_network_board.h"
 #include "codecs/es8311_audio_codec.h"
 #include "button.h"
@@ -53,10 +53,12 @@ public:
     void PowerSaveTimerSetEnabled(bool enabled);
     virtual void SetPowerSaveMode(bool enabled) override;
     PowerManager* getPowerManager(){ return power_manager_; };
+    void switchAecMode(AecMode mode);
+    void switchBtMode(bool enable);
 #if CONFIG_USE_BLUETOOTH
     BT_Emitter* GetBTEmitter(){ return bt_emitter_; } ;
     BT_STATUS SwitchBluetooth(bool switch_on);
 #endif
 };
 
-#endif // XIAOZHIYUNLIAO_S3_H 
+#endif // XIAOZHIYUNLIAO_S3_H
