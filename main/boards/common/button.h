@@ -21,6 +21,7 @@ public:
     void OnDoubleClick(std::function<void()> callback);
     void OnThreeClick(std::function<void()> callback);
     void OnFourClick(std::function<void()> callback);
+    void OnFiveClick(std::function<void()> callback);
     int getButtonLevel() const;
     void OnMultipleClick(std::function<void()> callback, uint8_t click_count = 3);
 
@@ -35,6 +36,7 @@ protected:
     std::function<void()> on_double_click_;
     std::function<void()> on_three_click_;
     std::function<void()> on_four_click_;
+    std::function<void()> on_five_click_;
 };
 
 #if CONFIG_SOC_ADC_SUPPORTED

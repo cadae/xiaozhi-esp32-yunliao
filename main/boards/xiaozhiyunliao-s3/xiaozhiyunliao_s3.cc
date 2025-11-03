@@ -165,6 +165,8 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
 
     // 初始化液晶屏驱动芯片
     ESP_LOGD(TAG, "Install LCD driver");
+    Settings settings("display", false);
+    bool currentIpsMode = settings.GetBool("ips_mode", DISPLAY_INVERT_COLOR);
     esp_lcd_panel_dev_config_t panel_config = {};
     panel_config.reset_gpio_num = DISPLAY_SPI_PIN_LCD_RST;
     panel_config.bits_per_pixel = 16;
@@ -172,7 +174,7 @@ void XiaoZhiYunliaoS3::InitializeLCDDisplay() {
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel));
     esp_lcd_panel_reset(panel);
     esp_lcd_panel_init(panel);
-    esp_lcd_panel_invert_color(panel, DISPLAY_INVERT_COLOR);
+    esp_lcd_panel_invert_color(panel, currentIpsMode);
     esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY);
     esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
     display_ = new XiaoziyunliaoDisplay(
@@ -312,6 +314,18 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
         }
         if (GetWifiConfigMode()) {
             SetFactoryWifiConfiguration();
+        }
+    });
+    boot_button_.OnFiveClick([this]() {
+        ESP_LOGI(TAG, "Button OnFiveClick");
+        if (display_->GetPageIndex() == PageIndex::PAGE_CONFIG) {
+            Settings settings("display", true);
+            bool currentIpsMode = settings.GetBool("ips_mode", false);
+            settings.SetBool("ips_mode", !currentIpsMode);
+            ESP_LOGI(TAG, "IPS mode toggled to %s", !currentIpsMode ? "enabled" : "disabled");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            auto& app = Application::GetInstance();
+            app.Reboot();
         }
     });
 }
