@@ -238,8 +238,9 @@ void XiaoZhiYunliaoS3::InitializeButtons() {
 #if CONFIG_USE_ALARM
         app.ToggleChatState();
 #endif
-        std::string wake_word=Lang::Strings::WAKE_WORD;
-        app.WakeWordInvoke(wake_word);
+        //单击按键唤醒不再响应
+        // std::string wake_word=Lang::Strings::WAKE_WORD;
+        // app.WakeWordInvoke(wake_word);
     });
     boot_button_.OnPressDown([this]() {
         // ESP_LOGI(TAG, "Button OnPressDown");
