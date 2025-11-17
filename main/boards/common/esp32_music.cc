@@ -309,15 +309,17 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
     current_song_name_ = song_name;
     
     // 第一步：请求stream_pcm接口获取音频信息
-    std::string base_url = "http://www.xiaozhishop.xyz:5005";
+    std::string base_url = "http://http-embedded-music.miao-lab.top:2233";
     std::string full_url = base_url + "/stream_pcm?song=" + url_encode(song_name) + "&artist=" + url_encode(artist_name);
     
-    // ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
+    ESP_LOGI(TAG, "Request URL: %s", full_url.c_str());
     
     // 使用Board提供的HTTP客户端
     auto network = Board::GetInstance().GetNetwork();
     auto http = network->CreateHttp(0);
     
+    // 复用连接（服务端支持 Keep-Alive）
+    http->SetHeader("Connection", "keep-alive");
     // 设置基本请求头
     http->SetHeader("User-Agent", "ESP32-Music-Player/1.0");
     http->SetHeader("Accept", "application/json");
@@ -330,6 +332,9 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
         ESP_LOGE(TAG, "Failed to connect to music API");
         return false;
     }
+
+    // 添加超时
+    http->SetTimeout(15000);
     
     // 检查响应状态码
     int status_code = http->GetStatusCode();
@@ -371,21 +376,23 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
             
             // 检查audio_url是否有效
             if (cJSON_IsString(audio_url) && audio_url->valuestring && strlen(audio_url->valuestring) > 0) {
-                ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
+                // ESP_LOGI(TAG, "Audio URL path: %s", audio_url->valuestring);
                 
-                // 第二步：拼接完整的音频下载URL，确保对audio_url进行URL编码
-                std::string audio_path = audio_url->valuestring;
+                // // 第二步：拼接完整的音频下载URL，确保对audio_url进行URL编码
+                // std::string audio_path = audio_url->valuestring;
                 
-                // 使用统一的URL构建功能
-                if (audio_path.find("?") != std::string::npos) {
-                    size_t query_pos = audio_path.find("?");
-                    std::string path = audio_path.substr(0, query_pos);
-                    std::string query = audio_path.substr(query_pos + 1);
+                // // 使用统一的URL构建功能
+                // if (audio_path.find("?") != std::string::npos) {
+                //     size_t query_pos = audio_path.find("?");
+                //     std::string path = audio_path.substr(0, query_pos);
+                //     std::string query = audio_path.substr(query_pos + 1);
                     
-                    current_music_url_ = buildUrlWithParams(base_url, path, query);
-                } else {
-                    current_music_url_ = base_url + audio_path;
-                }
+                //     current_music_url_ = buildUrlWithParams(base_url, path, query);
+                // } else {
+                //     current_music_url_ = base_url + audio_path;
+                // }
+                // 第二步：直接使用音频URL开始流式播放
+                current_music_url_ = audio_url->valuestring;
                 
                 // ESP_LOGI(TAG, "小智开源音乐固件qq交流群:826072986");
                 ESP_LOGI(TAG, "Starting streaming playback for: %s", song_name.c_str());
@@ -394,17 +401,20 @@ bool Esp32Music::Download(const std::string& song_name, const std::string& artis
                 
                 // 处理歌词URL - 只有在歌词显示模式下才启动歌词
                 if (cJSON_IsString(lyric_url) && lyric_url->valuestring && strlen(lyric_url->valuestring) > 0) {
-                    // 拼接完整的歌词下载URL，使用相同的URL构建逻辑
-                    std::string lyric_path = lyric_url->valuestring;
-                    if (lyric_path.find("?") != std::string::npos) {
-                        size_t query_pos = lyric_path.find("?");
-                        std::string path = lyric_path.substr(0, query_pos);
-                        std::string query = lyric_path.substr(query_pos + 1);
+                    // // 拼接完整的歌词下载URL，使用相同的URL构建逻辑
+                    // std::string lyric_path = lyric_url->valuestring;
+                    // if (lyric_path.find("?") != std::string::npos) {
+                    //     size_t query_pos = lyric_path.find("?");
+                    //     std::string path = lyric_path.substr(0, query_pos);
+                    //     std::string query = lyric_path.substr(query_pos + 1);
                         
-                        current_lyric_url_ = buildUrlWithParams(base_url, path, query);
-                    } else {
-                        current_lyric_url_ = base_url + lyric_path;
-                    }
+                    //     current_lyric_url_ = buildUrlWithParams(base_url, path, query);
+                    // } else {
+                    //     current_lyric_url_ = base_url + lyric_path;
+                    // }
+                    // 使用歌词URL获取歌词
+                    current_lyric_url_ = lyric_url->valuestring;
+                    ESP_LOGI(TAG, "Lyric URL: %s", current_lyric_url_.c_str());
                     
                     // 根据显示模式决定是否启动歌词
                     if (display_mode_ == DISPLAY_MODE_LYRICS) {
@@ -463,6 +473,14 @@ bool Esp32Music::StartStreaming(const std::string& music_url) {
     }
     
     ESP_LOGD(TAG, "Starting streaming for URL: %s", music_url.c_str());
+    
+    // 确保MP3解码器已初始化
+    if (!mp3_decoder_initialized_) {
+        if (!InitializeMp3Decoder()) {
+            ESP_LOGE(TAG, "Failed to initialize MP3 decoder");
+            return false;
+        }
+    }
     
     // 停止之前的播放和下载
     is_downloading_ = false;
@@ -780,9 +798,14 @@ void Esp32Music::PlayAudioStream() {
         auto& app = Application::GetInstance();
         DeviceState current_state = app.GetDeviceState();
         
-        // 等小智把话说完了，变成聆听状态之后，马上转成待机状态，进入音乐播放
-        if (current_state == kDeviceStateListening) {
-            ESP_LOGI(TAG, "Device is in listening state, switching to idle state for music playback");
+        // 状态转换：说话中-》聆听中-》待机状态-》播放音乐
+        if (current_state == kDeviceStateListening || current_state == kDeviceStateSpeaking) {
+            if (current_state == kDeviceStateSpeaking) {
+                ESP_LOGI(TAG, "Device is in speaking state, switching to listening state for music playback");
+            }
+            if (current_state == kDeviceStateListening) {
+                ESP_LOGI(TAG, "Device is in listening state, switching to idle state for music playback");
+            }
             // 切换状态
             app.ToggleChatState(); // 变成待机状态
             vTaskDelay(pdMS_TO_TICKS(300));
